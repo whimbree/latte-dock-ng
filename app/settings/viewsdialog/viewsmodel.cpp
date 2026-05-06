@@ -496,9 +496,17 @@ void Views::clearErrorsAndWarnings()
 void Views::populateScreens()
 {
     s_screens.clear();
-    Data::Screen primary(QString::number(Data::Screen::ONPRIMARYID), i18n(" - On Primary Screen - "));
-    Data::Screen allscreens(QString::number(Data::Screen::ONALLSCREENSID), i18n(" - On All Screens - "));
-    Data::Screen allsecscreens(QString::number(Data::Screen::ONALLSECONDARYSCREENSID), i18n(" - On All Secondary Screens - "));
+    // Use the same i18n strings as the SCREENCOLUMN DisplayRole below, so the
+    // dropdown's checked entry name matches the button text exactly. Mismatched
+    // i18nc contexts (e.g. "primary screen" vs " - On Primary Screen - ") were
+    // translated independently and produced visibly different strings in the
+    // button vs the dropdown.
+    Data::Screen primary(QString::number(Data::Screen::ONPRIMARYID),
+                         i18nc("primary screen", "Primary"));
+    Data::Screen allscreens(QString::number(Data::Screen::ONALLSCREENSID),
+                            i18n("All Screens"));
+    Data::Screen allsecscreens(QString::number(Data::Screen::ONALLSECONDARYSCREENSID),
+                               i18n("Secondary Screens"));
 
     primary.isActive = true;    
     allscreens.isActive = true;
@@ -903,17 +911,21 @@ QVariant Views::data(const QModelIndex &index, int role) const
         break;
     case EDGECOLUMN:
         if (role == Qt::DisplayRole){
+            // Use the same i18nc contexts as initEdges()'s s_edges entries so
+            // the button text matches the dropdown's checked-entry text exactly.
+            // The "X location" contexts above were used for an unrelated UI
+            // (BehaviorConfig.qml) and translators rendered them differently.
             if (m_viewsTable[row].edge == Plasma::Types::BottomEdge) {
-                return i18nc("bottom location", "Bottom");
+                return i18nc("bottom edge", "Bottom");
             } else if (m_viewsTable[row].edge == Plasma::Types::TopEdge) {
-                return i18nc("top location", "Top");
+                return i18nc("top edge", "Top");
             } else if (m_viewsTable[row].edge == Plasma::Types::LeftEdge) {
-                return i18nc("left location", "Left");
+                return i18nc("left edge", "Left");
             } else if (m_viewsTable[row].edge == Plasma::Types::RightEdge) {
-                return i18nc("right location", "Right");
+                return i18nc("right edge", "Right");
             }
 
-            return i18nc("unknown location", "Unknown");
+            return i18nc("unknown edge", "Unknown");
         } else if (role == Qt::UserRole) {
             return QString::number(m_viewsTable[row].edge);
         } else if (role == ISCHANGEDROLE) {

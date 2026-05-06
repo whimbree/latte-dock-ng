@@ -28,6 +28,7 @@ class CustomMenuItemWidget : public QWidget {
 public:
     CustomMenuItemWidget(QAction* action, QWidget *parent);
 
+    QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
     void paintEvent(QPaintEvent* e) override;
 

@@ -16,6 +16,7 @@
 #include <QPainter>
 #include <QRadioButton>
 #include <QStyleOptionMenuItem>
+#include <QTextDocument>
 
 namespace Latte {
 namespace Settings {
@@ -48,13 +49,50 @@ void CustomMenuItemWidget::setView(const Latte::Data::View &view)
     m_view = view;
 }
 
+QSize CustomMenuItemWidget::sizeHint() const
+{
+    QStyleOptionMenuItem opt;
+    opt.initFrom(this);
+    opt.text = m_action->text();
+    opt.menuItemType = QStyleOptionMenuItem::Normal;
+
+    // The text is painted via QTextDocument (Latte::drawFormattedText), whose
+    // HTML-rendered width is wider than fontMetrics().size(). Mirror the
+    // paint code's measurement, including the <b>...</b> wrapping that
+    // paintEvent applies for active screen entries, so the names aren't
+    // clipped on the right.
+    QString textForMeasure = opt.text;
+    bool inScreensColumn = !m_view.isValid();
+    if (m_screen.isActive && inScreensColumn) {
+        textForMeasure = QStringLiteral("<b>%1</b>").arg(textForMeasure);
+    }
+
+    QTextDocument doc;
+    doc.setHtml(QStringLiteral("<body>%1</body>").arg(textForMeasure));
+    const int textWidth = static_cast<int>(doc.size().width()) + 2;
+
+    const int rowHeight = fontMetrics().height() + 9;
+    const int radioWidth = rowHeight; // matches paintEvent's radiosize = opt.rect.height()
+
+    int screenTotal = 0;
+    if (!m_screen.id.isEmpty()) {
+        const int maxIconSize = 26; // matches paintEvent
+        const int iconLength = qMin(rowHeight, maxIconSize);
+        int scrMaxLength = static_cast<int>(iconLength * 1.7);
+        if (scrMaxLength % 2 == 0) {
+            --scrMaxLength;
+        }
+        const int margin = 2; // generictools.cpp MARGIN
+        screenTotal = scrMaxLength + margin * 2 + 1;
+    }
+
+    QSize contentSize(radioWidth + screenTotal + textWidth, rowHeight);
+    return style()->sizeFromContents(QStyle::CT_MenuItem, &opt, contentSize, this);
+}
+
 QSize CustomMenuItemWidget::minimumSizeHint() const
 {
-   QStyleOptionMenuItem opt;
-   QSize contentSize = fontMetrics().size(Qt::TextSingleLine | Qt::TextShowMnemonic, m_action->text());
-   contentSize.setHeight(contentSize.height() + 9);
-   contentSize.setWidth(contentSize.width() + 1.5 * contentSize.height());
-   return style()->sizeFromContents(QStyle::CT_MenuItem, &opt, contentSize, this);
+    return sizeHint();
 }
 
 void CustomMenuItemWidget::paintEvent(QPaintEvent* e)
