@@ -579,7 +579,7 @@ ContainmentItem {
         }
     }
 
-    Containment.onAppletAdded: {
+    Containment.onAppletAdded: function(applet, x, y) {
         if (fastLayoutManager.isMasqueradedIndex(x, y)) {
             var index = fastLayoutManager.masquearadedIndex(x, y);
             fastLayoutManager.addAppletItem(applet, index);
@@ -588,7 +588,7 @@ ContainmentItem {
         }
     }
 
-    Containment.onAppletRemoved: fastLayoutManager.removeAppletItem(applet);
+    Containment.onAppletRemoved: function(applet) { fastLayoutManager.removeAppletItem(applet); }
 
     Plasmoid.onUserConfiguringChanged: {
         if (plasmoid.userConfiguring) {
@@ -611,8 +611,29 @@ ContainmentItem {
     function createAppletItem(applet) {
         var appletContainer = appletItemComponent.createObject(dndSpacer.parent);
         if (!initAppletContainer(appletContainer, applet)) {
-            appletContainer.destroy();
-            return null;
+            // The applet's QML graphic object may not be ready yet at startup.
+            // Defer with a Timer and retry; if it still fails after a few
+            // attempts give up silently to avoid log noise.
+            var retryCount = 0;
+            var retryTimer = Qt.createQmlObject(
+                'import QtQuick 2.0; Timer { interval: 50; repeat: true }',
+                appletContainer);
+            retryTimer.triggered.connect(function() {
+                retryCount++;
+                if (initAppletContainer(appletContainer, applet)) {
+                    retryTimer.stop();
+                    retryTimer.destroy();
+                    appletContainer.visible = Qt.binding(function() {
+                        return (appletContainer.applet && appletContainer.applet.status !== PlasmaCore.Types.HiddenStatus || (!plasmoid.immutable && root.inConfigureAppletsMode)) && !appletContainer.isHidden;
+                    });
+                } else if (retryCount >= 20) { // ~1s
+                    retryTimer.stop();
+                    retryTimer.destroy();
+                    appletContainer.destroy();
+                }
+            });
+            retryTimer.start();
+            return appletContainer;
         }
 
         // don't show applet if it chooses to be hidden but still make it  accessible in the panelcontroller
@@ -659,7 +680,6 @@ ContainmentItem {
     function initAppletContainer(appletContainer, applet) {
         var appletItem = resolveAppletItem(applet);
         if (!appletItem || appletItem.anchors === undefined) {
-            console.warn("Latte: applet item is not ready for insertion", applet ? applet.id : -1);
             return false;
         }
 
