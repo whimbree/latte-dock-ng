@@ -4,7 +4,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-import QtQuick 2.7
+import QtQuick 2.15
 import QtQuick.Layouts 1.1
 import org.kde.plasma.plasmoid 2.0
 import org.kde.plasma.core 2.0 as PlasmaCore
@@ -24,7 +24,7 @@ Item {
     id: appletItem
     width: isInternalViewSplitter && !root.inConfigureAppletsMode ? 0 : computeWidth
     height: isInternalViewSplitter && !root.inConfigureAppletsMode ? 0 : computeHeight
-    z: externalAppletDrawsAboveTasks ? 1000 : 0
+    z: isSortDragging ? 1600 : (externalAppletDrawsAboveTasks ? 1000 : 0)
 
     //any applets that exceed their limits should not take events from their surrounding applets
     //clip: !isSeparator && !parabolicAreaLoader.active
@@ -109,6 +109,8 @@ Item {
     property bool isExpanded: false
 
     property bool isScheduledForDestruction: (fastLayoutManager && applet && fastLayoutManager.appletsInScheduledDestruction.indexOf(applet.id)>=0)
+    property bool isSortDragging: appletSortDragHandler.active
+    property bool sortDragMoved: false
     property bool isHidden: (!root.inConfigureAppletsMode
                              && (((applet
                                    && applet.status === PlasmaCore.Types.HiddenStatus
@@ -478,6 +480,316 @@ Item {
     //// END :: Animate Applet when a new applet is dragged in the view
 
     /// BEGIN functions
+    function isSortCandidate(item) {
+        return item
+                && item !== appletItem
+                && item.externalAppletDrawsAboveTasks
+                && !item.isParabolicEdgeSpacer
+                && !item.isPlaceHolder
+                && !item.isScheduledForDestruction
+                && !item.isHidden
+                && !item.isInternalViewSplitter;
+    }
+
+    function isSortBoundaryItem(item) {
+        return item
+                && item !== appletItem
+                && !item.isParabolicEdgeSpacer
+                && !item.isPlaceHolder
+                && !item.isScheduledForDestruction
+                && !item.isHidden
+                && !item.isInternalViewSplitter
+                && (item.pluginName === "org.kde.latte.plasmoid" || item.indexerIsSupported);
+    }
+
+    function bestSortCandidateInLayout(layout, rootX, rootY) {
+        if (!layout) {
+            return null;
+        }
+
+        var bestItem = null;
+        var bestDistance = Number.POSITIVE_INFINITY;
+        var children = layout.children;
+
+        for (var i = 0; i < children.length; ++i) {
+            var child = children[i];
+
+            if (!isSortCandidate(child)) {
+                continue;
+            }
+
+            var local = child.mapFromItem(root, rootX, rootY);
+            var inCrossAxis = root.isVertical
+                    ? (local.x >= 0 && local.x <= child.width)
+                    : (local.y >= 0 && local.y <= child.height);
+
+            if (!inCrossAxis) {
+                continue;
+            }
+
+            var childLength = root.isVertical ? child.height : child.width;
+            var localMain = root.isVertical ? local.y : local.x;
+
+            // Include half an item of tolerance so dragging through a visible
+            // gap between zoomed applets still selects the nearest neighbour.
+            if (localMain < (-childLength / 2) || localMain > (childLength * 1.5)) {
+                continue;
+            }
+
+            var distance = Math.abs(localMain - (childLength / 2));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestItem = child;
+            }
+        }
+
+        return bestItem;
+    }
+
+    function bestSortBoundaryInLayout(layout, rootX, rootY) {
+        if (!layout) {
+            return null;
+        }
+
+        var bestItem = null;
+        var bestDistance = Number.POSITIVE_INFINITY;
+        var children = layout.children;
+
+        for (var i = 0; i < children.length; ++i) {
+            var child = children[i];
+
+            if (!isSortBoundaryItem(child)) {
+                continue;
+            }
+
+            var local = child.mapFromItem(root, rootX, rootY);
+            var inCrossAxis = root.isVertical
+                    ? (local.x >= 0 && local.x <= child.width)
+                    : (local.y >= 0 && local.y <= child.height);
+
+            if (!inCrossAxis) {
+                continue;
+            }
+
+            var childLength = root.isVertical ? child.height : child.width;
+            var localMain = root.isVertical ? local.y : local.x;
+
+            if (localMain < (-childLength / 2) || localMain > (childLength * 1.5)) {
+                continue;
+            }
+
+            var distance = Math.abs(localMain - (childLength / 2));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestItem = child;
+            }
+        }
+
+        return bestItem;
+    }
+
+    function isPointInLayoutMainAxis(layout, rootX, rootY, tolerance) {
+        if (!layout) {
+            return false;
+        }
+
+        var local = layout.mapFromItem(root, rootX, rootY);
+
+        if (root.isVertical) {
+            return local.y >= -tolerance && local.y <= layout.height + tolerance;
+        }
+
+        return local.x >= -tolerance && local.x <= layout.width + tolerance;
+    }
+
+    function sideLayoutForSortDrop(rootX, rootY) {
+        if (root.myView.alignment !== LatteCore.types.Justify) {
+            return null;
+        }
+
+        var tolerance = Math.max(width, height);
+
+        if (isPointInLayoutMainAxis(layoutsContainer.startLayout, rootX, rootY, tolerance)) {
+            return layoutsContainer.startLayout;
+        }
+
+        if (isPointInLayoutMainAxis(layoutsContainer.endLayout, rootX, rootY, tolerance)) {
+            return layoutsContainer.endLayout;
+        }
+
+        var mainLayout = layoutsContainer.mainLayout;
+        var mainLocal = mainLayout.mapFromItem(root, rootX, rootY);
+        var mainLength = root.isVertical ? mainLayout.height : mainLayout.width;
+        var mainPosition = root.isVertical ? mainLocal.y : mainLocal.x;
+
+        if (mainPosition < -tolerance || mainPosition > mainLength + tolerance) {
+            return null;
+        }
+
+        return mainPosition < (mainLength / 2) ? layoutsContainer.startLayout : layoutsContainer.endLayout;
+    }
+
+    function insertAtSideLayoutEdge(layout) {
+        if (!layout) {
+            return false;
+        }
+
+        var children = layout.children;
+
+        if (layout === layoutsContainer.startLayout) {
+            for (var i = children.length - 1; i >= 0; --i) {
+                if (children[i].isInternalViewSplitter) {
+                    fastLayoutManager.insertBefore(children[i], appletItem);
+                    return true;
+                }
+            }
+
+            if (children.length > 0) {
+                fastLayoutManager.insertAfter(children[children.length - 1], appletItem);
+                return true;
+            }
+        } else if (layout === layoutsContainer.endLayout) {
+            for (var j = 0; j < children.length; ++j) {
+                if (children[j].isInternalViewSplitter) {
+                    fastLayoutManager.insertAfter(children[j], appletItem);
+                    return true;
+                }
+            }
+
+            if (children.length > 0) {
+                fastLayoutManager.insertBefore(children[0], appletItem);
+                return true;
+            }
+        }
+
+        appletItem.parent = layout;
+        return true;
+    }
+
+    function sortCandidateAt(rootX, rootY) {
+        var bestItem = null;
+        var bestDistance = Number.POSITIVE_INFINITY;
+        var layouts = root.myView.alignment === LatteCore.types.Justify
+                ? [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout]
+                : [layoutsContainer.mainLayout];
+
+        for (var i = 0; i < layouts.length; ++i) {
+            var candidate = bestSortCandidateInLayout(layouts[i], rootX, rootY);
+
+            if (!candidate) {
+                continue;
+            }
+
+            var local = candidate.mapFromItem(root, rootX, rootY);
+            var distance = root.isVertical
+                    ? Math.abs(local.y - (candidate.height / 2))
+                    : Math.abs(local.x - (candidate.width / 2));
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestItem = candidate;
+            }
+        }
+
+        return bestItem;
+    }
+
+    function sortBoundaryAt(rootX, rootY) {
+        var bestItem = null;
+        var bestDistance = Number.POSITIVE_INFINITY;
+        var layouts = [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout];
+
+        for (var i = 0; i < layouts.length; ++i) {
+            var boundary = bestSortBoundaryInLayout(layouts[i], rootX, rootY);
+
+            if (!boundary) {
+                continue;
+            }
+
+            var local = boundary.mapFromItem(root, rootX, rootY);
+            var distance = root.isVertical
+                    ? Math.abs(local.y - (boundary.height / 2))
+                    : Math.abs(local.x - (boundary.width / 2));
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestItem = boundary;
+            }
+        }
+
+        return bestItem;
+    }
+
+    function updateSortDrag(rootX, rootY) {
+        if (!fastLayoutManager || (!sortDragMoved && !appletSortDragHandler.active)) {
+            return;
+        }
+
+        var target = sortCandidateAt(rootX, rootY);
+        var originalParent = appletItem.parent;
+        var insertedAtSideEdge = false;
+        var insertedAtBoundary = false;
+
+        if (target) {
+            var local = target.mapFromItem(root, rootX, rootY);
+            var insertBeforeTarget = root.isVertical ? local.y < (target.height / 2) : local.x < (target.width / 2);
+
+            if (insertBeforeTarget) {
+                fastLayoutManager.insertBefore(target, appletItem);
+            } else {
+                fastLayoutManager.insertAfter(target, appletItem);
+            }
+        } else {
+            var boundary = sortBoundaryAt(rootX, rootY);
+
+            if (boundary) {
+                var boundaryLocal = boundary.mapFromItem(root, rootX, rootY);
+                var insertBeforeBoundary = root.isVertical ? boundaryLocal.y < (boundary.height / 2) : boundaryLocal.x < (boundary.width / 2);
+
+                if (insertBeforeBoundary) {
+                    fastLayoutManager.insertBefore(boundary, appletItem);
+                } else {
+                    fastLayoutManager.insertAfter(boundary, appletItem);
+                }
+
+                insertedAtBoundary = true;
+            } else {
+                var sideLayout = sideLayoutForSortDrop(rootX, rootY);
+
+                if (!sideLayout || !insertAtSideLayoutEdge(sideLayout)) {
+                    return;
+                }
+
+                insertedAtSideEdge = true;
+            }
+        }
+
+        if (appletItem.parent !== originalParent || target || insertedAtBoundary || insertedAtSideEdge) {
+            sortDragMoved = true;
+            root.updateIndexes();
+        }
+    }
+
+    function finishSortDrag() {
+        if (!sortDragMoved || !fastLayoutManager) {
+            sortDragMoved = false;
+            return;
+        }
+
+        if (root.myView.alignment === LatteCore.types.Justify) {
+            fastLayoutManager.moveAppletsBasedOnJustifyAlignment();
+        }
+
+        fastLayoutManager.save();
+        root.updateIndexes();
+
+        if (layouter) {
+            layouter.updateSizeForAppletsInFill();
+        }
+
+        sortDragMoved = false;
+    }
+
     function activateAppletForNeutralAreas(mouse){
         //if the event is at the active indicator or spacers area then try to expand the applet,
         //unfortunately for other applets there is no other way to activate them yet
@@ -746,6 +1058,46 @@ Item {
     }
 
     ///END connections
+
+    DragHandler {
+        id: appletSortDragHandler
+        target: null
+        acceptedButtons: Qt.LeftButton
+        enabled: appletItem.externalAppletDrawsAboveTasks
+                 && !root.inConfigureAppletsMode
+                 && !root.behaveAsPlasmaPanel
+                 && root.myView.isShownFully
+                 && !plasmoid.immutable
+
+        onActiveChanged: {
+            if (active) {
+                appletItem.sortDragMoved = false;
+                appletItem.thinTooltip.hide(appletItem.tooltipVisualParent);
+                appletSortDragPoller.restart();
+            } else {
+                appletSortDragPoller.stop();
+                appletItem.finishSortDrag();
+            }
+        }
+    }
+
+    Timer {
+        id: appletSortDragPoller
+        interval: 16
+        repeat: true
+
+        onTriggered: {
+            if (!appletSortDragHandler.active) {
+                stop();
+                return;
+            }
+
+            var rootPos = appletItem.mapToItem(root,
+                                               appletSortDragHandler.centroid.position.x,
+                                               appletSortDragHandler.centroid.position.y);
+            appletItem.updateSortDrag(rootPos.x, rootPos.y);
+        }
+    }
 
     //! It is used for any communication needed with the underlying applet
     Communicator.Engine{
