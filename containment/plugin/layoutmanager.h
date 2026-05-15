@@ -140,6 +140,8 @@ private Q_SLOTS:
     void updateOrder();
     void cleanupOptions();
     void reorderParabolicSpacers();
+    bool isModernDockStyle() const;
+    bool usesLegacyJustifySplitters() const;
     QVariant readConfigValue(const QString &key, const QVariant &defaultValue = QVariant()) const;
     void writeConfigValue(const QString &key, const QVariant &value);
     Plasma::Containment *containmentObject() const;
@@ -183,8 +185,6 @@ private:
     QQuickItem *lastSplitter();
     QQuickItem *appletItem(const int &id);
     QQuickItem *appletItemInLayout(QQuickItem *layout, const int &id);
-
-    void printAppletList(QList<QQuickItem *> list);
 
     QList<int> toIntList(const QString &serialized);
     QString toStr(const QList<int> &list);

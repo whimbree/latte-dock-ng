@@ -59,6 +59,36 @@ ContainmentItem {
     }
     readonly property int currentDockStyleIndex: dockStyleToIndex(plasmoid.configuration.dockStyle)
     readonly property bool isModernDockStyle: currentDockStyleIndex === 1
+    property bool modernAlignmentNormalizationGuard: false
+
+    function normalizedAlignmentForModern(alignmentValue) {
+        return alignmentValue;
+    }
+
+    function enforceModernAlignmentCompatibility() {
+        if (!root.isModernDockStyle || root.modernAlignmentNormalizationGuard) {
+            return false;
+        }
+
+        var normalizedConfigAlignment = root.normalizedAlignmentForModern(plasmoid.configuration.alignment);
+        var normalizedViewAlignment = latteView ? root.normalizedAlignmentForModern(latteView.alignment) : normalizedConfigAlignment;
+        var changed = false;
+
+        root.modernAlignmentNormalizationGuard = true;
+
+        if (plasmoid.configuration.alignment !== normalizedConfigAlignment) {
+            plasmoid.configuration.alignment = normalizedConfigAlignment;
+            changed = true;
+        }
+
+        if (latteView && latteView.alignment !== normalizedViewAlignment) {
+            latteView.alignment = normalizedViewAlignment;
+            changed = true;
+        }
+
+        root.modernAlignmentNormalizationGuard = false;
+        return changed;
+    }
 
     property bool blurEnabled: plasmoid.configuration.blurEnabled && (!forceTransparentPanel || forcePanelForBusyBackground)
 
@@ -411,29 +441,134 @@ ContainmentItem {
     Connections {
         target: latteView ? latteView : null
         function onAlignmentChanged() {
+            if (root.inStartup) {
+                return;
+            }
+
+            if (root.modernAlignmentNormalizationGuard) {
+                return;
+            }
+
             if (latteView.alignment === LatteCore.types.NoneAlignment) {
                 return;
             }
 
-            var previousalignment = plasmoid.configuration.alignment;
+            if (root.isModernDockStyle) {
+                var effectiveAlignment = root.normalizedAlignmentForModern(latteView.alignment);
 
-            if (latteView.alignment===LatteCore.types.Justify && previousalignment!==LatteCore.types.Justify) { // main -> justify
+                if (latteView.alignment !== effectiveAlignment) {
+                    root.modernAlignmentNormalizationGuard = true;
+                    latteView.alignment = effectiveAlignment;
+                    root.modernAlignmentNormalizationGuard = false;
+                    return;
+                }
+
                 layouter.appletsInParentChange = true;
-                fastLayoutManager.addJustifySplittersInMainLayout();
-                console.log("LAYOUTS: Moving applets from MAIN to THREE Layouts mode...");
-                fastLayoutManager.moveAppletsBasedOnJustifyAlignment();
+
+                if (effectiveAlignment === LatteCore.types.Justify) {
+                    if (parabolic) {
+                        parabolic.sglClearZoom();
+                    }
+
+                    // Modern style keeps a single-main applets flow. The legacy
+                    // three-layout split used for classic Justify can drift to
+                    // side-only placement under Qt6 and ends up left/right aligned.
+                    fastLayoutManager.joinLayoutsToMainLayout();
+                    root.forceModernAppletsToMainLayout();
+                    root.destroyInternalViewSplitters();
+                    root.forceDestroyInternalSplittersNow();
+                    root.resetModernParabolicOffsets();
+                } else {
+                    fastLayoutManager.joinLayoutsToMainLayout();
+                    root.forceModernAppletsToMainLayout();
+
+                    // Keep this unconditional for modern mode. Depending on the
+                    // configuration signal order, previousalignment can already
+                    // be updated when this handler runs.
+                    root.destroyInternalViewSplitters();
+                    root.forceDestroyInternalSplittersNow();
+                    root.resetModernParabolicOffsets();
+
+                    // Catch delayed splitter creation/connection ordering.
+                    Qt.callLater(function() {
+                        root.forceDestroyInternalSplittersNow();
+                        root.resetModernParabolicOffsets();
+                    });
+                }
+
                 layouter.appletsInParentChange = false;
-            } else if (latteView.alignment!==LatteCore.types.Justify && previousalignment===LatteCore.types.Justify ) { // justify ->main
-                layouter.appletsInParentChange = true;
-                console.log("LAYOUTS: Moving applets from THREE to MAIN Layout mode...");
-                fastLayoutManager.joinLayoutsToMainLayout();
-                layouter.appletsInParentChange = false;
+
+                root.updateIndexes();
+                plasmoid.configuration.alignment = effectiveAlignment;
+                fastLayoutManager.save();
+
+                if (effectiveAlignment === LatteCore.types.Justify) {
+                    root.forceModernAppletsToMainLayout();
+                    layouter.updateSizeForAppletsInFill();
+                    root.forceModernAppletsToMainLayout();
+                } else {
+                    root.forceModernAppletsToMainLayout();
+                    layouter.updateSizeForAppletsInFill();
+                    root.forceModernAppletsToMainLayout();
+                }
+                Qt.callLater(function() {
+                    root.forceModernAppletsToMainLayout();
+                    root.resetModernParabolicOffsets();
+                    layouter.updateSizeForAppletsInFill();
+                });
+                return;
             }
+
+            layouter.appletsInParentChange = true;
+
+            if (latteView.alignment === LatteCore.types.Justify) {
+                fastLayoutManager.joinLayoutsToMainLayout();
+                root.destroyInternalViewSplitters();
+                root.forceDestroyInternalSplittersNow();
+            } else {
+                fastLayoutManager.joinLayoutsToMainLayout();
+            }
+
+            layouter.appletsInParentChange = false;
 
             root.updateIndexes();
             plasmoid.configuration.alignment = latteView.alignment;
             fastLayoutManager.save();
+            layouter.updateSizeForAppletsInFill();
         }
+    }
+
+    onCurrentDockStyleIndexChanged: {
+        if (root.inStartup) {
+            return;
+        }
+
+        if (!latteView || root.modernAlignmentNormalizationGuard) {
+            return;
+        }
+
+        layouter.appletsInParentChange = true;
+
+        if (root.isModernDockStyle) {
+            root.enforceModernAlignmentCompatibility();
+            fastLayoutManager.joinLayoutsToMainLayout();
+            root.forceModernAppletsToMainLayout();
+            root.destroyInternalViewSplitters();
+            root.forceDestroyInternalSplittersNow();
+            root.resetModernParabolicOffsets();
+        } else if (latteView.alignment === LatteCore.types.Justify) {
+            fastLayoutManager.joinLayoutsToMainLayout();
+            root.destroyInternalViewSplitters();
+            root.forceDestroyInternalSplittersNow();
+        } else {
+            fastLayoutManager.joinLayoutsToMainLayout();
+        }
+
+        layouter.appletsInParentChange = false;
+
+        root.updateIndexes();
+        fastLayoutManager.save();
+        layouter.updateSizeForAppletsInFill();
     }
 
     onLatteViewChanged: {
@@ -540,6 +675,8 @@ ContainmentItem {
     Component.onCompleted: {
         upgrader_v010_alignment();
 
+        root.enforceModernAlignmentCompatibility();
+
         fastLayoutManager.restore();
         var action = configureAction();
         if (action) {
@@ -549,8 +686,6 @@ ContainmentItem {
     }
 
     Component.onDestruction: {
-        console.debug("Destroying Latte Dock Containment ui...");
-
         layouter.appletsInParentChange = true;
         fastLayoutManager.save();
 
@@ -741,6 +876,116 @@ ContainmentItem {
         splitter.internalSplitterId = internalViewSplittersCount()+1;
         splitter.visible = true;
         return splitter;
+    }
+
+    function forceDestroyInternalSplittersNow() {
+        var layouts = [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout];
+
+        for (var li = 0; li < layouts.length; ++li) {
+            var layout = layouts[li];
+            if (!layout) {
+                continue;
+            }
+
+            for (var i = layout.children.length - 1; i >= 0; --i) {
+                var item = layout.children[i];
+                if (item && item.isInternalViewSplitter) {
+                    item.destroy();
+                }
+            }
+        }
+    }
+
+    function resetModernParabolicOffsets() {
+        if (layoutsContainer && layoutsContainer.mainLayout) {
+            if (layoutsContainer.mainLayout.startParabolicSpacer) {
+                layoutsContainer.mainLayout.startParabolicSpacer.length = 0;
+            }
+
+            if (layoutsContainer.mainLayout.endParabolicSpacer) {
+                layoutsContainer.mainLayout.endParabolicSpacer.length = 0;
+            }
+        }
+
+        if (parabolic) {
+            parabolic.setCurrentParabolicItem(null);
+            parabolic.setCurrentParabolicItemIndex(-1);
+            parabolic.setDirectRenderingEnabled(false);
+            parabolic.sglClearZoom();
+        }
+    }
+
+    function forceModernAppletsToMainLayout() {
+        if (!root.isModernDockStyle || !layoutsContainer || !layoutsContainer.mainLayout) {
+            return;
+        }
+
+        var startLayout = layoutsContainer.startLayout;
+        var mainLayout = layoutsContainer.mainLayout;
+        var endLayout = layoutsContainer.endLayout;
+
+        if (!startLayout || !endLayout) {
+            return;
+        }
+
+        var appletItems = [];
+        var layouts = [startLayout, mainLayout, endLayout];
+
+        for (var li = 0; li < layouts.length; ++li) {
+            var layout = layouts[li];
+
+            for (var i = 0; i < layout.children.length; ++i) {
+                var child = layout.children[i];
+                if (!child || child === dndSpacer) {
+                    continue;
+                }
+
+                if (child.isInternalViewSplitter === true || child.isParabolicEdgeSpacer === true) {
+                    continue;
+                }
+
+                if (appletItems.indexOf(child) === -1) {
+                    appletItems.push(child);
+                }
+            }
+        }
+
+        appletItems.sort(function(a, b) {
+            var apos = a.mapToItem(root, 0, 0);
+            var bpos = b.mapToItem(root, 0, 0);
+            return root.isVertical ? (apos.y - bpos.y) : (apos.x - bpos.x);
+        });
+
+        for (var j = 0; j < appletItems.length; ++j) {
+            appletItems[j].parent = mainLayout;
+        }
+
+        root.forceDestroyInternalSplittersNow();
+
+        var startSpacer = mainLayout.startParabolicSpacer;
+        var endSpacer = mainLayout.endParabolicSpacer;
+
+        if (startSpacer) {
+            startSpacer.parent = mainLayout;
+        }
+
+        if (endSpacer) {
+            endSpacer.parent = mainLayout;
+        }
+
+        if (appletItems.length > 0) {
+            if (startSpacer) {
+                if (fastLayoutManager && typeof fastLayoutManager.insertBefore === "function") {
+                    fastLayoutManager.insertBefore(appletItems[0], startSpacer);
+                }
+            }
+
+            if (endSpacer) {
+                if (fastLayoutManager && typeof fastLayoutManager.insertAfter === "function") {
+                    fastLayoutManager.insertAfter(appletItems[appletItems.length - 1], endSpacer);
+                }
+            }
+        }
     }
 
     //! it is used in order to check the right click position

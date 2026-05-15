@@ -106,6 +106,10 @@ Item{
         readonly property alias progress: _indicator.progress
 
         readonly property alias screenEdgeMargin: _indicator.screenEdgeMargin
+        readonly property real tailThickness: (_indicator.metrics
+                                               && _indicator.metrics.margin
+                                               && _indicator.metrics.margin.tailThickness !== undefined)
+                                             ? _indicator.metrics.margin.tailThickness : 0
         readonly property bool isModernDockStyle: {
             var styleValue = plasmoid.configuration.dockStyle;
             var configModern = styleValue === 1 || styleValue === "1" || styleValue === "Modern";

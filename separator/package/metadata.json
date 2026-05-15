@@ -14,7 +14,7 @@
         "Id": "org.kde.latte.separator",
         "License": "GPL-3.0",
         "Name": "Latte Separator",
-        "Version": "1.0.13",
+        "Version": "1.0.14",
         "Website": "https://github.com/ruizhi-lab/latte-dock-ng"
     },
     "X-Plasma-API-Minimum-Version": "6.0"

@@ -62,6 +62,13 @@ Item {
             return false;
         }
 
+        // In modern dock style, task applets must not keep panel-like fill slots.
+        // Otherwise, after Justify -> Center transitions they can remain visually
+        // left-aligned inside an oversized reserved width.
+        if (root.isModernDockStyle && indexerIsSupported) {
+            return false;
+        }
+
         if ((root.isHorizontal && applet.Layout.fillWidth===true)
                 || (root.isVertical && applet.Layout.fillHeight===true)) {
             return !isHidden;
@@ -821,7 +828,7 @@ Item {
     }
 
     function sideLayoutForSortDrop(rootX, rootY) {
-        if (root.myView.alignment !== LatteCore.types.Justify) {
+        if (root.isModernDockStyle || root.myView.alignment !== LatteCore.types.Justify) {
             return null;
         }
 
@@ -887,7 +894,7 @@ Item {
     function sortCandidateAt(rootX, rootY) {
         var bestItem = null;
         var bestDistance = Number.POSITIVE_INFINITY;
-        var layouts = root.myView.alignment === LatteCore.types.Justify
+        var layouts = root.myView.alignment === LatteCore.types.Justify && !root.isModernDockStyle
                 ? [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout]
                 : [layoutsContainer.mainLayout];
 
@@ -1029,7 +1036,7 @@ Item {
             return;
         }
 
-        if (root.myView.alignment === LatteCore.types.Justify) {
+        if (root.myView.alignment === LatteCore.types.Justify && !root.isModernDockStyle) {
             fastLayoutManager.moveAppletsBasedOnJustifyAlignment();
         }
 

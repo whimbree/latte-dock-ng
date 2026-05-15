@@ -40,11 +40,10 @@ BackgroundProperties{
     hasTopBorder: hasAllBorders || ((solidBackground.enabledBorders & KSvg.FrameSvg.TopBorder) > 0)
     hasBottomBorder: hasAllBorders || ((solidBackground.enabledBorders & KSvg.FrameSvg.BottomBorder) > 0)
 
-    readonly property int modernThicknessPadding: {
-        var shellPadding = Math.max(2, Math.round(metrics.iconSize * 0.045));
-        return Math.max(metrics.margin.tailThickness, shellPadding);
-    }
+    readonly property int modernThicknessPadding: Math.max(6, Math.round(metrics.iconSize * 0.18))
     readonly property int modernLengthEndPadding: modernThicknessPadding
+    readonly property int modernMaxThicknessPadding: Math.max(6, Math.round(metrics.maxIconSize * 0.18))
+    readonly property real modernContentLength: root.isHorizontal ? layoutsContainerItem.modernContentsWidth : layoutsContainerItem.modernContentsHeight
 
     shadows.left: hasLeftBorder ? (customShadowIsEnabled ? customShadow : shadowsSvgItem.margins.left) : 0
     shadows.right: hasRightBorder ? (customShadowIsEnabled ? customShadow : shadowsSvgItem.margins.right) : 0
@@ -62,11 +61,11 @@ BackgroundProperties{
                       : (root.screenEdgeMarginEnabled ? metrics.margin.screenEdge - shadows.tailThickness : -shadows.tailThickness)
 
     paddings.top: {
-        if (hasTopBorder) {
-            if (modernDockStyle && root.isVertical) {
-                return modernLengthEndPadding;
-            }
+        if (modernDockStyle && root.isVertical) {
+            return modernLengthEndPadding;
+        }
 
+        if (hasTopBorder) {
             var customAppliedRadius = customRadiusIsEnabled ? customRadius : 0;
             var themePadding = themeExtendedBackground ? themeExtendedBackground.paddingTop : 0;
             var solidBackgroundPadding = solidBackground.margins.top;
@@ -83,11 +82,11 @@ BackgroundProperties{
         return 0;
     }
     paddings.bottom: {
-        if (hasBottomBorder) {
-            if (modernDockStyle && root.isVertical) {
-                return modernLengthEndPadding;
-            }
+        if (modernDockStyle && root.isVertical) {
+            return modernLengthEndPadding;
+        }
 
+        if (hasBottomBorder) {
             var customAppliedRadius = customRadiusIsEnabled ? customRadius : 0;
             var themePadding = themeExtendedBackground ? themeExtendedBackground.paddingBottom : 0;
             var solidBackgroundPadding = solidBackground.margins.bottom;
@@ -105,11 +104,11 @@ BackgroundProperties{
     }
 
     paddings.left: {
-        if (hasLeftBorder) {
-            if (modernDockStyle && root.isHorizontal) {
-                return modernLengthEndPadding;
-            }
+        if (modernDockStyle && root.isHorizontal) {
+            return modernLengthEndPadding;
+        }
 
+        if (hasLeftBorder) {
             var customAppliedRadius = customRadiusIsEnabled ? customRadius : 0;
             var themePadding = themeExtendedBackground ? themeExtendedBackground.paddingLeft : 0;
             var solidBackgroundPadding = solidBackground.margins.left;
@@ -127,11 +126,11 @@ BackgroundProperties{
     }
 
     paddings.right: {
-        if (hasRightBorder) {
-            if (modernDockStyle && root.isHorizontal) {
-                return modernLengthEndPadding;
-            }
+        if (modernDockStyle && root.isHorizontal) {
+            return modernLengthEndPadding;
+        }
 
+        if (hasRightBorder) {
             var customAppliedRadius = customRadiusIsEnabled? customRadius : 0;
             var themePadding = themeExtendedBackground ? themeExtendedBackground.paddingRight : 0;
             var solidBackgroundPadding = solidBackground.margins.right;
@@ -149,6 +148,14 @@ BackgroundProperties{
     }
 
     length: {
+        if (modernDockStyle) {
+            if (myView.alignment === LatteCore.types.Justify) {
+                return root.maxLength;
+            }
+
+            return Math.max(totals.paddingsLength, modernContentLength + totals.paddingsLength);
+        }
+
         if (myView.alignment === LatteCore.types.Justify) {
             return root.maxLength;
         }
@@ -181,9 +188,7 @@ BackgroundProperties{
 
     totals.visualThickness: {
         if (modernDockStyle) {
-            var shellPadding = Math.max(2, Math.round(metrics.iconSize * 0.045));
-            var modernPadding = Math.max(metrics.margin.tailThickness, shellPadding);
-            var wrappedThickness = metrics.iconSize + (2 * modernPadding);
+            var wrappedThickness = metrics.iconSize + (2 * modernThicknessPadding);
             return Math.max(totals.minThickness, wrappedThickness);
         }
 
@@ -200,9 +205,7 @@ BackgroundProperties{
 
     totals.visualMaxThickness: {
         if (modernDockStyle) {
-            var shellPadding = Math.max(2, Math.round(metrics.maxIconSize * 0.045));
-            var modernPadding = Math.max(metrics.margin.maxTailThickness, shellPadding);
-            var wrappedThickness = metrics.maxIconSize + (2 * modernPadding);
+            var wrappedThickness = metrics.maxIconSize + (2 * modernMaxThicknessPadding);
             return Math.max(totals.minThickness, wrappedThickness);
         }
 

@@ -414,6 +414,55 @@ Item {
         // console.log(" org.kde.latte s5...");
     }
 
+    function normalizedModernFillLength(appletItem) {
+        var minLength = appletItem.appletMinimumLength;
+        var preferredLength = appletItem.appletPreferredLength;
+        var maxLength = appletItem.appletMaximumLength;
+
+        minLength = minLength >= 0 && minLength !== Infinity ? minLength : -1;
+        preferredLength = preferredLength >= 0 && preferredLength !== Infinity ? preferredLength : -1;
+        maxLength = maxLength > 0 && maxLength !== Infinity ? maxLength : -1;
+
+        var length = preferredLength >= 0 ? preferredLength : minLength;
+
+        if (length < 0) {
+            length = root.isHorizontal ? appletItem.width : appletItem.height;
+        }
+
+        if (length < 0 || length === Infinity) {
+            length = metrics.iconSize;
+        }
+
+        if (minLength >= 0) {
+            length = Math.max(length, minLength);
+        }
+
+        if (maxLength > 0) {
+            length = Math.min(length, maxLength);
+        }
+
+        return Math.max(metrics.iconSize, length);
+    }
+
+    function updateModernFillApplets() {
+        var layoutList = [startLayout.grid, mainLayout.grid, endLayout.grid];
+
+        for (var layoutIndex = 0; layoutIndex < layoutList.length; ++layoutIndex) {
+            var layout = layoutList[layoutIndex];
+
+            for (var i = 0; i < layout.children.length; ++i) {
+                var curApplet = layout.children[i];
+
+                if (curApplet && curApplet.isAutoFillApplet && !curApplet.isHidden) {
+                    var length = normalizedModernFillLength(curApplet);
+                    curApplet.maxAutoFillLength = length;
+                    curApplet.minAutoFillLength = length;
+                    curApplet.inFillCalculations = false;
+                }
+            }
+        }
+    }
+
 
     function _updateSizeForAppletsInFill() {
         if (inNormalFillCalculationsState) {
@@ -422,6 +471,11 @@ Item {
             var noA = startLayout.fillApplets + mainLayout.fillApplets + endLayout.fillApplets;
 
             if (noA === 0) {
+                return;
+            }
+
+            if (root.isModernDockStyle) {
+                updateModernFillApplets();
                 return;
             }
 

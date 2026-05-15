@@ -2,6 +2,17 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.0.14] - 2026-05-15
+
+### Added
+- Added the modern dock style screenshot to README.
+- Added modern/classic dock style switching support with preserved parabolic animation behavior.
+
+### Fixed
+- Fixed Justify alignment for both modern and classic dock styles by removing the legacy splitter-based layout path from dock-style views.
+- Fixed widget/task spacing, separator placement, widget drag ordering, and style-specific indicator behavior across classic and modern dock styles.
+- Cleaned temporary debug logs after validation so startup logs stay focused on actionable warnings/errors.
+
 ## [v1.0.8] - 2026-05-04
 
 ### Fixed

@@ -20,9 +20,11 @@ LatteComponents.IndicatorItem{
     lengthPadding: indicator && indicator.configuration ? indicator.configuration.lengthPadding : 0.08
 
     readonly property real factor: 0.08
-    readonly property int size: factor * indicator.currentIconSize
+    readonly property int modernDockDotSize: Math.max(3, Math.round(indicator.currentIconSize * 0.055))
+    readonly property int size: modernDockStyle ? modernDockDotSize : factor * indicator.currentIconSize
 
-    readonly property int screenEdgeMargin: plasmoid.location === PlasmaCore.Types.Floating || reversedEnabled ? 0 : indicator.screenEdgeMargin
+    readonly property int screenEdgeMargin: modernDockStyle ? indicator.screenEdgeMargin
+                                                            : (plasmoid.location === PlasmaCore.Types.Floating || reversedEnabled ? 0 : indicator.screenEdgeMargin)
 
     property color textColorSafe: theme && theme.textColor !== undefined ? theme.textColor : "#ffffff"
     property color backgroundColorSafe: theme && theme.backgroundColor !== undefined ? theme.backgroundColor : "#202020"
@@ -38,6 +40,7 @@ LatteComponents.IndicatorItem{
     }
 
     property color notActiveColor: indicator.isMinimized ? minimizedColor : isActiveColor
+    property color stateDotColor: indicator.isActive || (indicator.isGroup && indicator.hasShown) ? isActiveColor : notActiveColor
 
     //! Common Options
     readonly property bool reversedEnabled: indicator.configuration.reversed
@@ -48,8 +51,13 @@ LatteComponents.IndicatorItem{
     readonly property int activeStyle: indicator.configuration.activeStyle
     readonly property bool modernDockStyle: indicator && indicator.isModernDockStyle === true
     readonly property int effectiveActiveStyle: modernDockStyle ? 1 /*Dot*/ : activeStyle
-    readonly property int modernDockIndicatorInset: modernDockStyle ? Math.max(4, Math.round(indicator.currentIconSize * 0.26)) : 0
-    readonly property int effectiveScreenEdgeMargin: screenEdgeMargin + modernDockIndicatorInset
+    readonly property real modernDockIconEdgeGap: modernDockStyle
+                                                 ? Math.max(0, indicator.tailThickness !== undefined ? indicator.tailThickness : 0)
+                                                 : 0
+    readonly property real modernDockIndicatorMargin: modernDockStyle
+                                                       ? screenEdgeMargin + Math.max(0, Math.round((modernDockIconEdgeGap - size) / 2))
+                                                       : screenEdgeMargin
+    readonly property real effectiveScreenEdgeMargin: modernDockStyle ? modernDockIndicatorMargin : screenEdgeMargin
     //!glow options
     readonly property bool glowEnabled: indicator.configuration.glowEnabled
     readonly property bool glow3D: indicator.configuration.glow3D
@@ -121,19 +129,23 @@ LatteComponents.IndicatorItem{
                     }
                 }
 
-                basicColor: indicator.isActive || (indicator.isGroup && indicator.hasShown) ? root.isActiveColor : root.notActiveColor
+                basicColor: root.stateDotColor
 
                 size: root.size
                 glow3D: glow3D
                 animation: Math.max(1.65*3*LatteCore.Environment.longDuration,indicator.durationTime*3*LatteCore.Environment.longDuration)
                 location: plasmoid.location
-                glowOpacity: root.glowOpacity
+                glowOpacity: root.modernDockStyle ? 1 : root.glowOpacity
                 contrastColor: indicator.shadowColor
                 attentionColor: theme.negativeTextColor
 
                 roundCorners: true
                 showAttention: indicator.inAttention
                 showGlow: {
+                    if (root.modernDockStyle) {
+                        return false;
+                    }
+
                     if (glowEnabled && (glowApplyTo === 2 /*All*/ || showAttention ))
                         return true;
                     else if (glowEnabled && glowApplyTo === 1 /*OnActive*/ && indicator.hasActive)
@@ -141,7 +153,7 @@ LatteComponents.IndicatorItem{
                     else
                         return false;
                 }
-                showBorder: glowEnabled && glow3D
+                showBorder: !root.modernDockStyle && glowEnabled && glow3D
 
                 property int stateWidth: indicator.isGroup ? root.width - secondPoint.width : root.width - spacer.width
                 property int stateHeight: indicator.isGroup ? root.height - secondPoint.height : root.height - spacer.height

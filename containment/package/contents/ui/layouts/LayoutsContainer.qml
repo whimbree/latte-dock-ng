@@ -41,7 +41,11 @@ Item{
         property: "x"
         when: !visibilityManager.inRelocationAnimation
         value: {
-            if ( latteView && root.isHorizontal && root.myView.alignment === LatteCore.types.Justify ){
+            if (latteView && root.isHorizontal && root.myView.alignment === LatteCore.types.Justify) {
+                if (root.isModernDockStyle) {
+                    return 0;
+                }
+
                 return ((latteView.width/2) - (root.maxLength/2) + background.offset);
             } else {
                 if ((root.myView.inSlidingIn || root.myView.inSlidingOut) && root.isVertical){
@@ -70,7 +74,11 @@ Item{
         property: "y"
         when: !visibilityManager.inRelocationAnimation
         value: {
-            if ( latteView && root.isVertical && root.myView.alignment === LatteCore.types.Justify ) {
+            if (latteView && root.isVertical && root.myView.alignment === LatteCore.types.Justify) {
+                if (root.isModernDockStyle) {
+                    return 0;
+                }
+
                 return ((latteView.height/2) - (root.maxLength/2) + background.offset);
             } else {
                 if ((root.myView.inSlidingIn || root.myView.inSlidingOut) && root.isHorizontal){
@@ -94,8 +102,8 @@ Item{
         }
     }
 
-    width: root.isHorizontal && root.myView.alignment === LatteCore.types.Justify ? root.maxLength : parent.width
-    height: root.isVertical && root.myView.alignment === LatteCore.types.Justify ? root.maxLength : parent.height
+    width: root.isHorizontal && root.myView.alignment === LatteCore.types.Justify && !root.isModernDockStyle ? root.maxLength : parent.width
+    height: root.isVertical && root.myView.alignment === LatteCore.types.Justify && !root.isModernDockStyle ? root.maxLength : parent.height
     z:10
 
     property bool animationSent: false
@@ -105,6 +113,10 @@ Item{
                                                     Math.max(_startLayout.width, _mainLayout.width ,_endLayout.width)
     property int contentsHeight: root.isVertical ? _startLayout.height + _mainLayout.height + _endLayout.height :
                                                    Math.max(_startLayout.height, _mainLayout.height, _endLayout.height)
+    readonly property int modernContentsWidth: root.isHorizontal ? _startLayout.implicitWidth + _mainLayout.implicitWidth + _endLayout.implicitWidth :
+                                                                   Math.max(_startLayout.implicitWidth, _mainLayout.implicitWidth, _endLayout.implicitWidth)
+    readonly property int modernContentsHeight: root.isVertical ? _startLayout.implicitHeight + _mainLayout.implicitHeight + _endLayout.implicitHeight :
+                                                                  Math.max(_startLayout.implicitHeight, _mainLayout.implicitHeight, _endLayout.implicitHeight)
 
 
     readonly property int backgroundShadowTailLength: {
@@ -281,7 +293,11 @@ Item{
                 return background.offset + lengthTailPadding;
             }
 
-            return (root.myView.alignment === LatteCore.types.Justify) ? inJustifyCenterOffset : background.offset - parabolicOffsetting
+            if (root.myView.alignment === LatteCore.types.Justify && !root.isModernDockStyle) {
+                return inJustifyCenterOffset;
+            }
+
+            return background.offset - parabolicOffsetting;
         }
 
         ignoredLength: startParabolicSpacer.length + endParabolicSpacer.length
@@ -362,6 +378,10 @@ Item{
             when: !layouter.appletsInParentChange && layouter.inNormalFillCalculationsState
             value: {
                 if (root.myView.alignment !== LatteCore.types.Justify) {
+                    return 0;
+                }
+
+                if (root.isModernDockStyle) {
                     return 0;
                 }
 

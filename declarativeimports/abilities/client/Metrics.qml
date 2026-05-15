@@ -20,6 +20,7 @@ AbilityDefinition.Metrics {
     mask: ref.metrics.mask
     padding: ref.metrics.padding
     totals: ref.metrics.totals
+    readonly property bool modernDockStyle: ref.metrics.modernDockStyle !== undefined ? ref.metrics.modernDockStyle : false
 
     readonly property AbilityDefinition.Metrics local: AbilityDefinition.Metrics {
         mask.thickness.normalForItems: local.totals.thickness
