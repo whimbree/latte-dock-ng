@@ -44,7 +44,7 @@ Loader {
         readonly property bool basicLevel: !advancedLevel
         readonly property bool advancedLevel: universalSettings.inAdvancedModeForEditSettings
 
-        readonly property bool inConfigureAppletsMode: universalSettings.inConfigureAppletsMode || !LatteCore.WindowSystem.compositingActive
+        readonly property bool inConfigureAppletsMode: universalSettings.inConfigureAppletsMode
 
         readonly property bool kirigamiLibraryIsFound: true
 
