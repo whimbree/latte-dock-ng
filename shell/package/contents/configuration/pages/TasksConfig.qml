@@ -215,9 +215,11 @@ PlasmaComponents.Page {
                     }
                 }
 
+                // KActivities support is unreliable in Plasma 6, hidden until restored
                 LatteComponents.CheckBox {
                     Layout.maximumWidth: dialog.optionsWidth
                     text: i18n("Show only tasks from the current activity")
+                    visible: false
                     enabled: !disableAllWindowsFunctionality
                     value: tasks.configuration.showOnlyCurrentActivity
 
@@ -432,8 +434,6 @@ PlasmaComponents.Page {
                 Layout.maximumWidth: Layout.minimumWidth
                 Layout.minimumHeight: implicitHeight
                 Layout.bottomMargin: units.smallSpacing
-                enabled: LatteCore.WindowSystem.compositingActive
-
                 checked: tasks.configuration.scrollTasksEnabled
                 text: i18n("Scrolling")
                 tooltip: i18n("Enable tasks scrolling when they overflow and exceed the available space");
@@ -715,30 +715,6 @@ PlasmaComponents.Page {
         }
         //! END: Actions
 
-        //! BEGIN: Recycling
-       /* ColumnLayout {
-            spacing: units.smallSpacing
-            visible: dialog.advancedLevel
 
-            LatteComponents.Header {
-                text: i18n("Recycling")
-            }
-
-            LatteComponents.Button {
-                Layout.minimumWidth: dialog.optionsWidth
-                Layout.maximumWidth: Layout.minimumWidth
-                Layout.leftMargin: units.smallSpacing * 2
-                Layout.rightMargin: units.smallSpacing * 2
-                Layout.topMargin: units.smallSpacing
-
-                text: i18n("Remove Latte Tasks Applet")
-                enabled: latteView.latteTasksArePresent
-                tooltip: i18n("Remove Latte Tasks plasmoid")
-
-                onClicked: {
-                    latteView.removeTasksPlasmoid();
-                }
-            }
-        }*/
     }
 }
