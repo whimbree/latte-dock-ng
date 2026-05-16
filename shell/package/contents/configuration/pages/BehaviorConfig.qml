@@ -650,7 +650,6 @@ PlasmaComponents.Page {
                             Layout.fillWidth: true
                             model: [i18nc("none scroll actions", "No Action"),
                                 i18n("Cycle Through Desktops"),
-                                i18n("Cycle Through Activities"),
                                 i18n("Cycle Through Tasks"),
                                 i18n("Cycle And Minimize Tasks")
                             ]
@@ -664,9 +663,6 @@ PlasmaComponents.Page {
                                     break;
                                 case LatteContainment.types.ScrollDesktops:
                                     plasmoid.configuration.scrollAction = LatteContainment.types.ScrollDesktops;
-                                    break;
-                                case LatteContainment.types.ScrollActivities:
-                                    plasmoid.configuration.scrollAction = LatteContainment.types.ScrollActivities;
                                     break;
                                 case LatteContainment.types.ScrollTasks:
                                     plasmoid.configuration.scrollAction = LatteContainment.types.ScrollTasks;
@@ -817,34 +813,11 @@ PlasmaComponents.Page {
 
                 LatteComponents.CheckBox {
                     Layout.maximumWidth: dialog.optionsWidth
-                    text: i18n("Activate KWin edge after hiding")
-                    tooltip: i18n("After the view becomes hidden, KWin is informed to track user feedback. For example an edge visual hint is shown whenever the mouse approaches the hidden view")
-                    enabled: latteView.visibility.mode !== LatteCore.types.SidebarOnDemand
-                             && latteView.visibility.mode !== LatteCore.types.SidebarAutoHide
-                    value: latteView.visibility.enableKWinEdges
-
-                    onClicked: {
-                        latteView.visibility.enableKWinEdges = !latteView.visibility.enableKWinEdges;
-                    }
-                }
-
-                LatteComponents.CheckBox {
-                    Layout.maximumWidth: dialog.optionsWidth
                     text: i18n("Raise on desktop change")
                     value: latteView.visibility.raiseOnDesktop
 
                     onClicked: {
                         latteView.visibility.raiseOnDesktop = !latteView.visibility.raiseOnDesktop;
-                    }
-                }
-
-                LatteComponents.CheckBox {
-                    Layout.maximumWidth: dialog.optionsWidth
-                    text: i18n("Raise on activity change")
-                    value: latteView.visibility.raiseOnActivity
-
-                    onClicked: {
-                        latteView.visibility.raiseOnActivity = !latteView.visibility.raiseOnActivity;
                     }
                 }
             }
