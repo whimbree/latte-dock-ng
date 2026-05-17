@@ -44,7 +44,7 @@ Item {
     readonly property int marginAreaSeparatorFreeThickness: ((parentThickness - appletItem.metrics.marginsArea.headThickness - appletItem.metrics.marginsArea.tailThickness - maxMarginAreaSeparatorCenteredRectLength - 10) / 2)
     readonly property int maxMarginAreaSeparatorGap: Math.max(3, 0.5 * marginAreaSeparatorFreeThickness)
 
-    property color color: "blue"
+    property color color: "transparent"
 
     Rectangle {
         id: tailPadding

@@ -516,6 +516,9 @@ ContainmentItem {
                     root.forceModernAppletsToMainLayout();
                     root.resetModernParabolicOffsets();
                     layouter.updateSizeForAppletsInFill();
+                    if (root.inConfigureAppletsMode && latteView && latteView.positioner) {
+                        latteView.positioner.syncGeometry();
+                    }
                 });
                 return;
             }
@@ -537,7 +540,6 @@ ContainmentItem {
             fastLayoutManager.save();
             layouter.updateSizeForAppletsInFill();
         }
-    }
 
     onCurrentDockStyleIndexChanged: {
         if (root.inStartup) {

@@ -20,17 +20,7 @@ Grid {
     rows: 99999
     rowSpacing: 0
 
-    opacity: {
-        if (root.inConfigureAppletsMode && root.myView.alignment===LatteCore.types.Justify && layoutsContainer.mainLayout.isCoveredFromSideLayouts){
-            if (dragOverlay && (!dragOverlay.currentHoveredLayout || dragOverlay.currentHoveredLayout === appletsContainer)) {
-                return 1;
-            } else {
-                return 0.3;
-            }
-        }
-
-        return 1;
-    }
+    opacity: 1
 
     readonly property real length : root.isHorizontal ? width - ignoredLength : height - ignoredLength
     property real ignoredLength: 0
