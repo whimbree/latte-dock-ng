@@ -156,7 +156,7 @@ public:
     void setIsTouchingTopViewAndIsBusy(bool touchAndBusy);
 
     bool screenEdgeMarginEnabled() const;
-    void setScreenEdgeMarginEnabled(bool enabled); 
+    void setScreenEdgeMarginEnabled(bool enabled);
 
     virtual int groupId() const;
 
