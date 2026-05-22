@@ -17,7 +17,24 @@ l10n_branch=""
 preclean_install="true"
 purge_user_data="false"
 install_mode="auto"   # auto | user | system
-build_jobs=""         # empty = cmake's default (nproc)
+build_jobs=""         # empty = auto-detect from available memory
+
+# Auto-detect parallel jobs based on available memory (each job needs ~2GB)
+detect_build_jobs() {
+    local mem_kb=0
+    if [[ -r /proc/meminfo ]]; then
+        mem_kb=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null)
+        [[ -z "$mem_kb" ]] && mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null)
+    fi
+    local mem_gb=$((mem_kb / 1048576))
+    ((mem_gb < 1)) && mem_gb=1
+    local cpus=$(nproc 2>/dev/null || echo 1)
+    local max_jobs=$((mem_gb / 2))
+    ((max_jobs < 1)) && max_jobs=1
+    ((max_jobs > cpus)) && max_jobs=$cpus
+    build_jobs="$max_jobs"
+    echo "Info: auto-detected ${build_jobs} parallel job(s) (${mem_gb}GB mem, ${cpus} CPUs)"
+}
 
 declare -a user_homes=()
 
@@ -61,7 +78,7 @@ Build options:
   --translations | --translations-stable
   --clean | --no-clean      (default: --clean)
   --purge-user-data         Wipe user config/cache on clean
-  --jobs N | -jN | --jobs=N Cap parallel compile jobs (default: cmake's nproc).
+  --jobs N | -jN | --jobs=N Cap parallel compile jobs (default: auto-detect from memory).
                             Use a small value on memory-constrained hosts to
                             avoid OOM (each clang/g++ peaks at 1-2 GiB).
 
@@ -202,6 +219,10 @@ fi
 cmake "${cmake_args[@]}" ..
 
 [[ "$l10n_auto_translations" == "ON" ]] && cmake --build . --target fetch-translations
+
+if [[ -z "$build_jobs" ]]; then
+    detect_build_jobs
+fi
 
 if [[ -n "$build_jobs" ]]; then
     echo "Info: capping parallel compile jobs at ${build_jobs}"
