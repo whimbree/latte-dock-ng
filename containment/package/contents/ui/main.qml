@@ -91,7 +91,13 @@ ContainmentItem {
         return changed;
     }
 
-    property bool blurEnabled: plasmoid.configuration.blurEnabled && (!forceTransparentPanel || forcePanelForBusyBackground)
+    property real backgroundOpacity: {
+        var pt = plasmoid.configuration.panelTransparency
+        return (pt === -1 || pt === "-1") ? 1.0 : Number(pt) / 100.0
+    }
+
+    readonly property bool hasCustomTransparency: plasmoid.configuration.panelTransparency !== -1 && plasmoid.configuration.panelTransparency !== "-1"
+    property bool blurEnabled: plasmoid.configuration.blurEnabled && !hasCustomTransparency && (!forceTransparentPanel || forcePanelForBusyBackground)
 
     readonly property bool inDraggingOverAppletOrOutOfContainment: latteView && latteView.containsDrag && !backDropArea.containsDrag
 
