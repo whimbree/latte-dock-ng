@@ -1,0 +1,80 @@
+services:
+  arch:
+    build:
+      context: .
+      dockerfile: Dockerfile.arch
+    volumes:
+      - /data/projects/latte-dock-ng:/src:ro
+    tmpfs:
+      - /build
+    working_dir: /build
+    command: >-
+      bash -c "
+        cmake /src -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release 2>&1 &&
+        cmake --build . --parallel $(nproc) 2>&1 &&
+        echo '=== ARCH: BUILD SUCCESS ==='
+      "
+
+  fedora:
+    build:
+      context: .
+      dockerfile: Dockerfile.fedora
+    volumes:
+      - /data/projects/latte-dock-ng:/src:ro
+    tmpfs:
+      - /build
+    working_dir: /build
+    command: >-
+      bash -c "
+        cmake /src -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release 2>&1 &&
+        cmake --build . --parallel $(nproc) 2>&1 &&
+        echo '=== FEDORA: BUILD SUCCESS ==='
+      "
+
+  opensuse:
+    build:
+      context: .
+      dockerfile: Dockerfile.opensuse
+    volumes:
+      - /data/projects/latte-dock-ng:/src:ro
+    tmpfs:
+      - /build
+    working_dir: /build
+    command: >-
+      bash -c "
+        cmake /src -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release 2>&1 &&
+        cmake --build . --parallel $(nproc) 2>&1 &&
+        echo '=== OPENSUSE: BUILD SUCCESS ==='
+      "
+
+  ubuntu:
+    build:
+      context: .
+      dockerfile: Dockerfile.ubuntu
+    volumes:
+      - /data/projects/latte-dock-ng:/src:ro
+    tmpfs:
+      - /build
+    working_dir: /build
+    command: >-
+      bash -c "
+        cmake /src -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release 2>&1 &&
+        cmake --build . --parallel $(nproc) 2>&1 &&
+        echo '=== UBUNTU: BUILD SUCCESS ==='
+      "
+
+  debian:
+    build:
+      context: .
+      dockerfile: Dockerfile.debian
+    volumes:
+      - /data/projects/latte-dock-ng:/src:ro
+    tmpfs:
+      - /build
+    working_dir: /build
+    command: >-
+      bash -c "
+        cmake /src -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release 2>&1 &&
+        cmake --build . --parallel $(nproc) 2>&1 &&
+        echo '=== DEBIAN: BUILD SUCCESS ==='
+      "
