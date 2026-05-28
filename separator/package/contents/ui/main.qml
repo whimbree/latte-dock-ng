@@ -38,8 +38,8 @@ PlasmoidItem {
 
             Rectangle {
                 anchors.centerIn: parent
-                width: root.horizontal ? 1 : parent.width
-                height: root.horizontal ? parent.height : 1
+                width: root.horizontal ? 1 : (root.latteBridge ? root.latteBridge.iconSize - 4 : parent.width)
+                height: root.horizontal ? (root.latteBridge ? root.latteBridge.iconSize - 4 : parent.height) : 1
                 radius: 1
                 color: root.separatorColor
                 opacity: root.separatorOpacity
