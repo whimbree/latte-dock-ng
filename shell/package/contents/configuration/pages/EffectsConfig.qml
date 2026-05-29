@@ -414,16 +414,6 @@ PlasmaComponents.Page {
                             }
                         }
                         PlasmaComponents.TabButton {
-                            id: plasmaBtn
-                            text: i18nc("plasma indicator style", "Plasma")
-                            readonly property string type: "org.kde.latte.plasma"
-
-                            onClicked: {
-                                latteView.indicator.type = type;
-                            }
-                        }
-
-                        PlasmaComponents.TabButton {
                             id: customBtn
 
                             onClicked: {
@@ -450,10 +440,8 @@ PlasmaComponents.Page {
                         function selectTab(type) {
                             if (type === latteBtn.type) {
                                 tabBar.currentIndex = 0;
-                            } else if (type === plasmaBtn.type) {
-                                tabBar.currentIndex = 1;
                             } else if (type === customIndicator.type) {
-                                tabBar.currentIndex = 2;
+                                tabBar.currentIndex = 1;
                             }
                         }
 
