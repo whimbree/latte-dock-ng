@@ -96,7 +96,6 @@ PlasmaComponents.Page {
                         screenCmb.currentIndex = screenCmb.findScreen(latteView.positioner.currentScreenName);
                     }
 
-                    console.log(latteView.positioner.currentScreenName);
                 }
 
                 Connections{

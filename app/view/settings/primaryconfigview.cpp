@@ -431,11 +431,6 @@ void PrimaryConfigView::hideEvent(QHideEvent *ev)
         m_latteView->containment()->setUserConfiguring(false);
     }
 
-    const auto mode = m_latteView->visibility()->mode();
-
-    if (mode == Types::AlwaysVisible && m_originalMode != Types::AlwaysVisible) {
-        m_latteView->layout()->recreateView(m_latteView->containment());
-    }
 
     setVisible(false);
 }
