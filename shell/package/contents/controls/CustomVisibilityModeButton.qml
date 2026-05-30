@@ -52,8 +52,12 @@ LatteComponents.ComboBoxButton{
 
     signal viewRelevantVisibilityModeChanged();
 
+    property bool _initializing: false
+
     Component.onCompleted: {
+        _initializing = true;
         reloadModel();
+        _initializing = false;
     }
 
     ListModel {
@@ -100,6 +104,10 @@ LatteComponents.ComboBoxButton{
         }
 
         function onCurrentIndexChanged() {
+            if (_initializing) {
+                return;
+            }
+
             var idx = custom.comboBox.currentIndex;
             if (idx >= 0 && idx < actionsModel.count) {
                 var item = actionsModel.get(idx);

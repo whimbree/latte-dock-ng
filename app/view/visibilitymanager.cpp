@@ -917,6 +917,7 @@ void VisibilityManager::saveConfig()
     config.writeEntry("raiseOnActivityChange", m_raiseOnActivityChange);
     config.writeEntry("visibility", static_cast<int>(m_mode));
 
+    config.sync();
 }
 
 void VisibilityManager::restoreConfig()
