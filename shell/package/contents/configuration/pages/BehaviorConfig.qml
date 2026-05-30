@@ -339,33 +339,42 @@ PlasmaComponents.Page {
                     Layout.maximumWidth: Layout.minimumWidth
                     text: i18n("Always Visible")
                     checked: parent.mode === mode
-                    checkable: false
+                    checkable: true
 
                     property int mode: LatteCore.types.AlwaysVisible
 
-                    onClicked: latteView.visibility.mode = mode
+                    onClicked: {
+                        latteView.visibility.mode = mode
+                        checked = Qt.binding(function() { return parent.mode === mode })
+                    }
                 }
                 LatteComponents.Button {
                     Layout.minimumWidth: parent.buttonSize
                     Layout.maximumWidth: Layout.minimumWidth
                     text: i18n("Auto Hide")
                     checked: parent.mode === mode
-                    checkable: false
+                    checkable: true
 
                     property int mode: LatteCore.types.AutoHide
 
-                    onClicked: latteView.visibility.mode = mode
+                    onClicked: {
+                        latteView.visibility.mode = mode
+                        checked = Qt.binding(function() { return parent.mode === mode })
+                    }
                 }
                 LatteComponents.Button {
                     Layout.minimumWidth: parent.buttonSize
                     Layout.maximumWidth: Layout.minimumWidth
                     text: i18n("Dodge Active")
                     checked: parent.mode === mode
-                    checkable: false
+                    checkable: true
 
                     property int mode: LatteCore.types.DodgeActive
 
-                    onClicked: latteView.visibility.mode = mode
+                    onClicked: {
+                        latteView.visibility.mode = mode
+                        checked = Qt.binding(function() { return parent.mode === mode })
+                    }
                 }
 
                 LatteExtraControls.CustomVisibilityModeButton {
@@ -375,7 +384,7 @@ PlasmaComponents.Page {
                     implicitWidth: alwaysVisibleBtn.implicitWidth
                     implicitHeight: alwaysVisibleBtn.implicitHeight
 
-                    checked: parent.mode === mode
+                    checked: containsActiveMode
 
                     mode: plasmoid.configuration.lastDodgeVisibilityMode
                     modes: [
@@ -401,7 +410,7 @@ PlasmaComponents.Page {
                     implicitWidth: alwaysVisibleBtn.implicitWidth
                     implicitHeight: alwaysVisibleBtn.implicitHeight
 
-                    checked: parent.mode === mode
+                    checked: containsActiveMode
 
                     mode: plasmoid.configuration.lastWindowsVisibilityMode
                     modes: [
@@ -423,32 +432,6 @@ PlasmaComponents.Page {
                     ]
 
                     onViewRelevantVisibilityModeChanged: plasmoid.configuration.lastWindowsVisibilityMode = latteView.visibility.mode;
-                }
-
-                LatteExtraControls.CustomVisibilityModeButton {
-                    id: sidebarModeBtn
-                    Layout.minimumWidth: parent.buttonSize
-                    Layout.maximumWidth: Layout.minimumWidth
-                    implicitWidth: alwaysVisibleBtn.implicitWidth
-                    implicitHeight: alwaysVisibleBtn.implicitHeight
-
-                    checked: parent.mode === mode
-
-                    mode: plasmoid.configuration.lastSidebarVisibilityMode
-                    modes: [
-                        {
-                            pluginId: LatteCore.types.SidebarOnDemand,
-                            name: i18n("On Demand Sidebar"),
-                            tooltip: i18n("Sidebar can be shown and become hidden only through an external applet, shortcut or script")
-                        },
-                        {
-                            pluginId: LatteCore.types.SidebarAutoHide,
-                            name: i18n("Auto Hide Sidebar"),
-                            tooltip: i18n("Sidebar can be shown only through an external applet, shortcut or script but it can also autohide itself when it does not contain mouse")
-                        }
-                    ]
-
-                    onViewRelevantVisibilityModeChanged: plasmoid.configuration.lastSidebarVisibilityMode = latteView.visibility.mode;
                 }
 
             }
