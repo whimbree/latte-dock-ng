@@ -190,6 +190,13 @@ Item {
 
     Binding{
         target: latteView && latteView.effects ? latteView.effects : null
+        property: "effectiveBackgroundOpacity"
+        when: latteView && latteView.effects
+        value: plasmoid.configuration.panelTransparency === -1 ? 1.0 : background.currentOpacity
+    }
+
+    Binding{
+        target: latteView && latteView.effects ? latteView.effects : null
         property: "drawEffects"
         when: latteView && latteView.effects && !root.inStartup
         value: LatteCore.WindowSystem.compositingActive

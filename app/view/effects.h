@@ -42,6 +42,7 @@ class Effects: public QObject
     Q_PROPERTY(bool backgroundRadiusEnabled READ backgroundRadiusEnabled WRITE setBackgroundRadiusEnabled NOTIFY backgroundRadiusEnabledChanged)
     Q_PROPERTY(int backgroundRadius READ backgroundRadius WRITE setBackgroundRadius NOTIFY backgroundRadiusChanged)
     Q_PROPERTY(float backgroundOpacity READ backgroundOpacity WRITE setBackgroundOpacity NOTIFY backgroundOpacityChanged)
+    Q_PROPERTY(float effectiveBackgroundOpacity READ effectiveBackgroundOpacity WRITE setEffectiveBackgroundOpacity NOTIFY effectiveBackgroundOpacityChanged)
 
     Q_PROPERTY(int popUpMargin READ popUpMargin NOTIFY popUpMarginChanged)
 
@@ -90,6 +91,9 @@ public:
     float backgroundOpacity() const;
     void setBackgroundOpacity(float opacity);
 
+    float effectiveBackgroundOpacity() const;
+    void setEffectiveBackgroundOpacity(float opacity);
+
     QRect mask() const;
     void setMask(QRect area);
 
@@ -126,6 +130,7 @@ Q_SIGNALS:
     void backgroundAllCornersChanged();
     void backgroundCornersMaskChanged();
     void backgroundOpacityChanged();
+    void effectiveBackgroundOpacityChanged();
     void backgroundRadiusEnabledChanged();
     void backgroundRadiusChanged();
     void drawShadowsChanged();
@@ -175,6 +180,7 @@ private:
 
     int m_backgroundRadius{-1};
     float m_backgroundOpacity{1.0};
+    float m_effectiveBackgroundOpacity{1.0};
 
     qreal m_backEffectContrast{1};
     qreal m_backEffectIntesity{1};

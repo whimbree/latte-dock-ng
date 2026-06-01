@@ -464,8 +464,8 @@ BackgroundProperties{
 
         function updateEffectsArea() {
             if (!updateEffectsAreaTimer.running) {
-               // invUpdateEffectsArea(); // disabled in order to force Timer at all cases
-                updateEffectsAreaTimer.start();
+                invUpdateEffectsArea(); // immediate update on first geometry change — eliminates compositor mask lag
+                updateEffectsAreaTimer.start(); // debounce subsequent rapid changes
             }
         }
 

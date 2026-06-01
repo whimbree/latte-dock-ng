@@ -40,6 +40,7 @@ void Effects::init()
 {
     connect(this, &Effects::backgroundOpacityChanged, this, &Effects::updateEffects);
     connect(this, &Effects::backgroundOpacityChanged, this, &Effects::updateBackgroundContrastValues);
+    connect(this, &Effects::effectiveBackgroundOpacityChanged, this, &Effects::updateEffects);
     connect(this, &Effects::backgroundCornersMaskChanged, this, &Effects::updateEffects);
     connect(this, &Effects::backgroundRadiusEnabledChanged, this, &Effects::updateEffects);
     connect(this, &Effects::drawEffectsChanged, this, &Effects::updateEffects);
@@ -202,6 +203,21 @@ void Effects::setBackgroundOpacity(float opacity)
 
     updateBackgroundContrastValues();
     Q_EMIT backgroundOpacityChanged();
+}
+
+float Effects::effectiveBackgroundOpacity() const
+{
+    return m_effectiveBackgroundOpacity;
+}
+
+void Effects::setEffectiveBackgroundOpacity(float opacity)
+{
+    if (m_effectiveBackgroundOpacity == opacity) {
+        return;
+    }
+
+    m_effectiveBackgroundOpacity = opacity;
+    Q_EMIT effectiveBackgroundOpacityChanged();
 }
 
 int Effects::editShadow() const
@@ -459,7 +475,14 @@ void Effects::updateEffects()
     bool clearEffects{true};
 
     if (m_drawEffects) {
-        if (!m_rect.isNull() && !m_rect.isEmpty() && m_rect != VisibilityManager::ISHIDDENMASK) {
+        // At near-full opacity the panel is effectively opaque — blur-behind
+        // and background-contrast are barely visible through it. The binary
+        // QRegion mask would only create visual artifacts (jagged edges at
+        // rounded corners, ghosting when the mask lags during animations).
+        // Skip effects when the effective opacity exceeds 0.95.
+        if (!m_rect.isNull() && !m_rect.isEmpty()
+            && m_rect != VisibilityManager::ISHIDDENMASK
+            && m_effectiveBackgroundOpacity < 0.95f) {
             QRegion backMask;
 
             if (m_backgroundRadiusEnabled) {
