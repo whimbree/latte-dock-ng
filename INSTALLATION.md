@@ -17,6 +17,7 @@ sudo apt install \
   libkf6newstuff-dev libkf6archive-dev libkf6globalaccel-dev \
   libkf6crash-dev libkf6windowsystem-dev libkf6package-dev libkf6svg-dev \
   plasma-wayland-protocols libwayland-dev \
+  liblayershellqtinterface-dev \
   gettext build-essential git pkgconf
 ```
 
@@ -33,6 +34,7 @@ sudo apt install \
   libkf6newstuff-dev libkf6archive-dev libkf6globalaccel-dev \
   libkf6crash-dev libkf6windowsystem-dev libkf6package-dev libkf6svg-dev \
   plasma-wayland-protocols libwayland-dev \
+  liblayershellqtinterface-dev \
   gettext build-essential git pkgconf
 ```
 
@@ -48,6 +50,7 @@ sudo pacman -S \
   kdeclarative kitemmodels kxmlgui kiconthemes kio ki18n knotifications \
   knewstuff karchive kpackage kglobalaccel kcrash kwindowsystem ksvg \
   plasma-wayland-protocols wayland \
+  layer-shell-qt \
   gcc gettext git pkgconf
 ```
 
@@ -64,6 +67,7 @@ sudo dnf install \
   kf6-knewstuff-devel kf6-karchive-devel kf6-kglobalaccel-devel \
   kf6-kcrash-devel kf6-kwindowsystem-devel kf6-kpackage-devel kf6-ksvg-devel \
   plasma-wayland-protocols-devel wayland-devel \
+  layer-shell-qt-devel \
   gcc-c++ gettext git pkgconf-pkg-config
 ```
 
@@ -80,6 +84,7 @@ sudo zypper install \
   kf6-knewstuff-devel kf6-karchive-devel kf6-kglobalaccel-devel \
   kf6-kcrash-devel kf6-kwindowsystem-devel kf6-kpackage-devel kf6-ksvg-devel \
   plasma-wayland-protocols wayland-devel \
+  layer-shell-qt6-devel \
   gcc-c++ gettext git pkgconf
 ```
 
@@ -99,6 +104,7 @@ sudo dnf install \
   lib64kf6newstuff-devel lib64kf6archive-devel lib64kf6globalaccel-devel \
   lib64kf6crash-devel lib64kf6windowsystem-devel lib64kf6package-devel lib64kf6svg-devel \
   plasma-wayland-protocols-devel lib64wayland-devel lib64glvnd-devel \
+  lib64layer-shell-qt-devel \
   gcc-c++ gettext git pkgconf-pkg-config
 ```
 
