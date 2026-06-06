@@ -573,7 +573,18 @@ BackgroundProperties{
 
         backgroundColor: colorizerManager.backgroundColor
         shadowColor: modernDockStyle ? Qt.rgba(0, 0, 0, 0.35) : customShadowColor
-        shadowSize: modernDockStyle ? Math.max(10, customShadow) : (customShadowIsEnabled ? customShadow : 0)
+        shadowSize: {
+            if (modernDockStyle) {
+                if (!customShadowIsEnabled) {
+                    return 0; //! shadows toggled off by user
+                }
+                if (customUserShadowIsEnabled) {
+                    return customShadow; //! user explicitly set a shadow size
+                }
+                return Math.max(10, customShadow); //! Modern default
+            }
+            return customShadowIsEnabled ? customShadow : 0;
+        }
         borderWidth: modernDockStyle ? 1 : 0
         borderColor: modernDockStyle
                      ? Qt.rgba(colorizerManager.outlineColor.r, colorizerManager.outlineColor.g, colorizerManager.outlineColor.b, 0.55)
