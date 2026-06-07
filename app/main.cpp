@@ -24,8 +24,7 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QDBusConnection>
-#include <QDBusInterface>
-#include <QDBusReply>
+#include <QDBusMessage>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -340,7 +339,6 @@ int main(int argc, char **argv)
     }
 
     if (!lockFile.tryLock(timeout)) {
-        QDBusInterface iface("org.kde.lattedock", "/Latte", "", QDBusConnection::sessionBus());
         bool addview{parser.isSet(QStringLiteral("add-dock"))};
         bool importlayout{parser.isSet(QStringLiteral("import-layout"))};
         bool enableautostart{parser.isSet(QStringLiteral("enable-autostart"))};
@@ -348,24 +346,37 @@ int main(int argc, char **argv)
 
         bool validaction{false};
 
-        if (iface.isValid()) {
-            if (addview) {
-                validaction = true;
-                iface.call("addView", (uint)0, parser.value(QStringLiteral("add-dock")));
-                qGuiApp->exit();
-                return 0;
-            } else if (importlayout) {
-                validaction = true;
-                QString suggestedname = parser.isSet(QStringLiteral("suggested-layout-name")) ? parser.value(QStringLiteral("suggested-layout-name")) : QString();
-                iface.call("importLayoutFile", parser.value(QStringLiteral("import-layout")), suggestedname);
-                qGuiApp->exit();
-                return 0;
-            } else if (enableautostart || disableautostart){
-                validaction = true;
-            } else {
-                // LayoutPage = 0
-                iface.call("showSettingsWindow", 0);
-            }
+        if (addview) {
+            validaction = true;
+            QDBusMessage msg = QDBusMessage::createMethodCall(
+                QStringLiteral("org.kde.lattedock"),
+                QStringLiteral("/Latte"), QString(),
+                QStringLiteral("addView"));
+            msg.setArguments({(uint)0, parser.value(QStringLiteral("add-dock"))});
+            QDBusConnection::sessionBus().call(msg);
+            qGuiApp->exit();
+            return 0;
+        } else if (importlayout) {
+            validaction = true;
+            QString suggestedname = parser.isSet(QStringLiteral("suggested-layout-name")) ? parser.value(QStringLiteral("suggested-layout-name")) : QString();
+            QDBusMessage msg = QDBusMessage::createMethodCall(
+                QStringLiteral("org.kde.lattedock"),
+                QStringLiteral("/Latte"), QString(),
+                QStringLiteral("importLayoutFile"));
+            msg.setArguments({parser.value(QStringLiteral("import-layout")), suggestedname});
+            QDBusConnection::sessionBus().call(msg);
+            qGuiApp->exit();
+            return 0;
+        } else if (enableautostart || disableautostart){
+            validaction = true;
+        } else {
+            // LayoutPage = 0
+            QDBusMessage msg = QDBusMessage::createMethodCall(
+                QStringLiteral("org.kde.lattedock"),
+                QStringLiteral("/Latte"), QString(),
+                QStringLiteral("showSettingsWindow"));
+            msg.setArguments({0});
+            QDBusConnection::sessionBus().call(msg);
         }
 
         if (!validaction) {
@@ -599,17 +610,15 @@ inline void ensureKdeSessionEnvironment()
 
 inline bool isKdeSessionShuttingDown()
 {
-    QDBusInterface ksmserver(QStringLiteral("org.kde.ksmserver"),
-                             QStringLiteral("/KSMServer"),
-                             QStringLiteral("org.kde.KSMServerInterface"),
-                             QDBusConnection::sessionBus());
-
-    if (!ksmserver.isValid()) {
-        return false;
-    }
-
-    QDBusReply<bool> reply = ksmserver.call(QStringLiteral("isShuttingDown"));
-    return reply.isValid() && reply.value();
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.kde.ksmserver"),
+        QStringLiteral("/KSMServer"),
+        QStringLiteral("org.kde.KSMServerInterface"),
+        QStringLiteral("isShuttingDown"));
+    QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
+    return (reply.type() == QDBusMessage::ReplyMessage
+            && !reply.arguments().isEmpty()
+            && reply.arguments().first().toBool());
 }
 
 inline void filterDebugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)

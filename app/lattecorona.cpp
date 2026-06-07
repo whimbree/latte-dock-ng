@@ -51,8 +51,7 @@
 #include <QApplication>
 #include <QScreen>
 #include <QDBusConnection>
-#include <QDBusInterface>
-#include <QDBusReply>
+#include <QDBusMessage>
 #include <QDebug>
 #include <QFile>
 #include <QFontDatabase>
@@ -194,16 +193,16 @@ void Corona::onAboutToQuit()
                          || qApp->property("latte_session_ending").toBool();
 
     if (!sessionEnding) {
-        QDBusInterface ksmserver(QStringLiteral("org.kde.ksmserver"),
-                                 QStringLiteral("/KSMServer"),
-                                 QStringLiteral("org.kde.KSMServerInterface"),
-                                 QDBusConnection::sessionBus());
-
-        if (ksmserver.isValid()) {
-            QDBusReply<bool> shuttingDownReply = ksmserver.call(QStringLiteral("isShuttingDown"));
-            if (shuttingDownReply.isValid() && shuttingDownReply.value()) {
-                sessionEnding = true;
-            }
+        QDBusMessage msg = QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.ksmserver"),
+            QStringLiteral("/KSMServer"),
+            QStringLiteral("org.kde.KSMServerInterface"),
+            QStringLiteral("isShuttingDown"));
+        QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
+        if (reply.type() == QDBusMessage::ReplyMessage
+            && !reply.arguments().isEmpty()
+            && reply.arguments().first().toBool()) {
+            sessionEnding = true;
         }
     }
 

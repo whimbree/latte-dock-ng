@@ -64,10 +64,22 @@ void ScreenGeometries::init()
     qDebug() << " PLASMA STRUTS MANAGER :: checking availability....";
     bool serviceavailable{false};
 
-    if (QDBusConnection::sessionBus().interface()) {
-        serviceavailable = QDBusConnection::sessionBus().interface()->isServiceRegistered(PLASMASERVICE).value();
-        qDebug() << "PLASMA STRUTS MANAGER :: interface availability :: " << QDBusConnection::sessionBus().interface()->isServiceRegistered(PLASMASERVICE).value();
-    }
+    // Use org.freedesktop.DBus.NameHasOwner instead of
+    // QDBusConnectionInterface::isServiceRegistered() which internally
+    // connects to the deprecated serviceOwnerChanged(QString,QString,QString)
+    // signal in Qt 6.8+.
+    QDBusMessage ping = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.DBus"),
+        QStringLiteral("/"),
+        QStringLiteral("org.freedesktop.DBus"),
+        QStringLiteral("NameHasOwner"));
+    ping.setArguments({QStringLiteral(PLASMASERVICE)});
+    QDBusMessage reply = QDBusConnection::sessionBus().call(ping);
+    serviceavailable = (reply.type() == QDBusMessage::ReplyMessage
+                        && !reply.arguments().isEmpty()
+                        && reply.arguments().first().toBool());
+
+    qDebug() << "PLASMA STRUTS MANAGER :: interface availability :: " << serviceavailable;
 
     connect(m_corona->universalSettings(), &Latte::UniversalSettings::isAvailableGeometryBroadcastedToPlasmaChanged, this, &ScreenGeometries::onBroadcastToPlasmaChanged);
 

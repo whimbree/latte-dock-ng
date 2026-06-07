@@ -1561,9 +1561,9 @@ void View::releaseGrab()
         mouseGrabberItem()->ungrabMouse();
     }
 
-    //! properly release grabbed mouse in order to inform all views
-    setMouseGrabEnabled(true);
-    setMouseGrabEnabled(false);
+    // In Qt 6, mouseGrabberItem()->ungrabMouse() above handles release.
+    // The setMouseGrabEnabled toggle was a Qt 5 workaround; removing it
+    // avoids "cannot grab mouse: no event is currently being delivered".
 
     //! Send a fake QEvent::Leave to inform applets for mouse leaving the view
     const QPointF scenePos(-5, -5);

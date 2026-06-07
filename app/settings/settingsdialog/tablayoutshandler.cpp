@@ -26,7 +26,8 @@
 #include "../../tools/commontools.h"
 
 //! Qt
-#include <QDBusInterface>
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMimeData>
