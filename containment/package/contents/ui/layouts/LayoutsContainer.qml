@@ -266,6 +266,7 @@ Item{
 
     AppletsContainer {
         id: _startLayout
+        z:20 //render above mainLayout to keep launcher icons clickable during zoom
         beginIndex: 0
         offset: lengthTailPadding
         alignment: {
@@ -290,7 +291,6 @@ Item{
     AppletsContainer {
         id: _mainLayout
         z:10 //be on top of start and end layouts
-        clip: true //prevent zoomed items from overlapping adjacent layouts
         beginIndex: 100
         offset: {
             if (!centered) {
@@ -411,6 +411,7 @@ Item{
 
     AppletsContainer {
         id: _endLayout
+        z:20 //render above mainLayout to keep tray icons clickable during zoom
         beginIndex: 200
         offset: lengthHeadPadding
         alignment: {
