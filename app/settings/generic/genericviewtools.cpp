@@ -16,14 +16,14 @@
 
 namespace Latte {
 
-const int ICONMARGIN = 1;
-const int INDICATORCHANGESLENGTH = 6;
-const int INDICATORCHANGESMARGIN = 5;
-const int MARGIN = 2;
+// Drawing constants (kIconMargin, kMargin, etc.) are defined in generictools.h
+
+constexpr int kViewLineThickness = 4;
+constexpr double kNonJustifyLengthRatio = 0.5;
 
 void drawView(QPainter *painter, const QStyleOption &option, const Latte::Data::View &view, const QRect &availableScreenRect, const float brushOpacity)
 {
-    int thick = 4;
+    int thick = kViewLineThickness;
     painter->save();
 
     bool selected = Latte::isSelected(option);
@@ -41,7 +41,7 @@ void drawView(QPainter *painter, const QStyleOption &option, const Latte::Data::
     int max_length = length;
 
     if (view.alignment != Latte::Types::Justify) {
-        length = 0.5 * length;
+        length = static_cast<int>(kNonJustifyLengthRatio * length);
     }
 
     //! provide even screen length
@@ -49,7 +49,7 @@ void drawView(QPainter *painter, const QStyleOption &option, const Latte::Data::
         length = qMin(max_length, length + 1);
     }
 
-    int screen_edge = (view.screenEdgeMargin > 0) ? 2 : 0;
+    int screen_edge = (view.screenEdgeMargin > 0) ? kMargin : 0;
 
     if (view.edge == Plasma::Types::TopEdge) {
         y = availableScreenRect.y() + thick/2 + screen_edge;

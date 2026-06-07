@@ -19,6 +19,7 @@ import org.kde.draganddrop 2.0
 Item {
     id: delegate
 
+    readonly property real badgeHeightRatio: 1.3
     readonly property string pluginName: model.pluginName
     readonly property bool pendingUninstall: pendingUninstallTimer.applets.indexOf(pluginName) > -1
     readonly property int runningInstances: main.runningInstancesFor(pluginName)
@@ -102,7 +103,7 @@ Item {
                         left: parent.left
                     }
                     width: countLabel.implicitWidth + height
-                    height: Math.round(Kirigami.Units.iconSizes.sizeForLabels * 1.3)
+                    height: Math.round(Kirigami.Units.iconSizes.sizeForLabels * delegate.badgeHeightRatio)
                     radius: height / 2
                     color: (delegate.runningInstances > 0 && delegate.GridView.isCurrentItem) ? Kirigami.Theme.highlightColor : Kirigami.Theme.positiveTextColor
                     visible: ((delegate.runningInstances > 0 && delegate.GridView.isCurrentItem) || model.recent) ?? false

@@ -16,6 +16,14 @@
 
 namespace Latte {
 
+// Shared drawing constants — also used by genericviewtools.cpp
+constexpr int kIconMargin = 1;
+constexpr int kIndicatorChangesLength = 6;
+constexpr int kIndicatorChangesMargin = 5;
+constexpr int kMargin = 2;
+constexpr int kMaxIconSize = 26;
+constexpr double kScreenIconAspectRatio = 1.7;
+
 bool isActive(const QStyleOption &option);
 bool isEnabled(const QStyleOption &option);
 bool isFocused(const QStyleOption &option);

@@ -23,6 +23,8 @@ namespace Settings {
 namespace View {
 namespace Widget {
 
+constexpr int kRowHeightPadding = 9;
+
 CustomMenuItemWidget::CustomMenuItemWidget(QAction* action, QWidget *parent)
     : QWidget(parent),
       m_action(action)
@@ -71,19 +73,15 @@ QSize CustomMenuItemWidget::sizeHint() const
     doc.setHtml(QStringLiteral("<body>%1</body>").arg(textForMeasure));
     const int textWidth = static_cast<int>(doc.size().width()) + 2;
 
-    const int rowHeight = fontMetrics().height() + 9;
+    const int rowHeight = fontMetrics().height() + kRowHeightPadding;
     const int radioWidth = rowHeight; // matches paintEvent's radiosize = opt.rect.height()
 
     int screenTotal = 0;
     if (!m_screen.id.isEmpty()) {
-        const int maxIconSize = 26; // matches paintEvent
-        const int iconLength = qMin(rowHeight, maxIconSize);
-        int scrMaxLength = static_cast<int>(iconLength * 1.7);
-        if (scrMaxLength % 2 == 0) {
-            --scrMaxLength;
-        }
-        const int margin = 2; // generictools.cpp MARGIN
-        screenTotal = scrMaxLength + margin * 2 + 1;
+        const int iconLength = qMin(rowHeight, kMaxIconSize);
+        QStyleOptionMenuItem screenOpt = opt;
+        const int scrMaxLength = Latte::screenMaxLength(screenOpt, kMaxIconSize);
+        screenTotal = scrMaxLength + kMargin * 2 + 1;
     }
 
     QSize contentSize(radioWidth + screenTotal + textWidth, rowHeight);
@@ -126,9 +124,8 @@ void CustomMenuItemWidget::paintEvent(QPaintEvent* e)
     opt.rect = remained;
 
     if (!m_screen.id.isEmpty()) {
-        int maxiconsize = 26;
-        remained = Latte::remainedFromScreenDrawing(opt, m_screen.isScreensGroup(), maxiconsize);
-        QRect availableScreenRect = Latte::drawScreen(&painter, opt, m_screen.isScreensGroup(), m_screen.geometry, maxiconsize);
+        remained = Latte::remainedFromScreenDrawing(opt, m_screen.isScreensGroup(), kMaxIconSize);
+        QRect availableScreenRect = Latte::drawScreen(&painter, opt, m_screen.isScreensGroup(), m_screen.geometry, kMaxIconSize);
 
         if (!m_view.id.isEmpty()) {
             Latte::drawView(&painter, opt, m_view, availableScreenRect);
@@ -141,10 +138,10 @@ void CustomMenuItemWidget::paintEvent(QPaintEvent* e)
     opt.text = opt.text.remove("&");
     if (qApp->layoutDirection() == Qt::LeftToRight) {
         //! add spacing
-        remained = QRect(opt.rect.x() + 2 , opt.rect.y(), opt.rect.width() - 2, opt.rect.height());
+        remained = QRect(opt.rect.x() + kMargin , opt.rect.y(), opt.rect.width() - kMargin, opt.rect.height());
     } else {
         //! add spacing
-        remained = QRect(opt.rect.x() , opt.rect.y(), opt.rect.width() - 2, opt.rect.height());
+        remained = QRect(opt.rect.x() , opt.rect.y(), opt.rect.width() - kMargin, opt.rect.height());
     }
 
     opt.rect = remained;

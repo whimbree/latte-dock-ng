@@ -46,6 +46,10 @@ QObject *findGraphicContextObject(QObject *containmentObject)
 namespace Latte {
 namespace ViewPart {
 
+constexpr int kScreenSyncIntervalMs = 100;
+constexpr int kMaxPlasmoidContextSyncAttempts = 200;
+constexpr int kPlasmoidContextSyncRetryMs = 50;
+
 SubConfigView::SubConfigView(Latte::View *view, const QString &title, const bool &isNormalWindow)
     : QQuickView(nullptr),
       m_isNormalWindow(isNormalWindow)
@@ -69,7 +73,7 @@ SubConfigView::SubConfigView(Latte::View *view, const QString &title, const bool
     }
 
     m_screenSyncTimer.setSingleShot(true);
-    m_screenSyncTimer.setInterval(100);
+    m_screenSyncTimer.setInterval(kScreenSyncIntervalMs);
 
     connections << connect(&m_screenSyncTimer, &QTimer::timeout, this, [this]() {
         if (!m_latteView) {
@@ -238,9 +242,9 @@ void SubConfigView::syncPlasmoidContext()
                  << "has graphicObject property:" << (metaObj->indexOfProperty("graphicObject") >= 0);
     }
 
-    if (m_plasmoidContextSyncAttempts < 200) {
+    if (m_plasmoidContextSyncAttempts < kMaxPlasmoidContextSyncAttempts) {
         ++m_plasmoidContextSyncAttempts;
-        QTimer::singleShot(50, this, &SubConfigView::syncPlasmoidContext);
+        QTimer::singleShot(kPlasmoidContextSyncRetryMs, this, &SubConfigView::syncPlasmoidContext);
     }
 }
 

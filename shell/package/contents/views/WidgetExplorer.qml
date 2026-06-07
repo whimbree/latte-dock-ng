@@ -23,10 +23,17 @@ import org.kde.plasma.private.shell 2.0 as PlasmaShell
 
 PC3.Page {
     id: main
-    // The dialog background SVG uses the Plasma panel/dark theme colours; set
-    // Complementary so that Kirigami text colours (white) contrast correctly.
+    // The FrameSvg "dialogs/background" follows the Plasma panel theme and is
+    // always dark. Complementary gives panel-appropriate colors (light text) so
+    // the dialog is readable when the application color scheme is light
+    // (e.g. dark panel + light applications).
     Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
     Kirigami.Theme.inherit: false
+
+    // Timer constants
+    readonly property int runningCountRefreshInterval: 100
+    readonly property int setModelDelay: 20
+    readonly property int pendingUninstallDelay: 200
 
     width: Math.max(heading.paintedWidth, Kirigami.Units.iconSizes.enormous * 3 + Kirigami.Units.smallSpacing * 4 + Kirigami.Units.gridUnit * 2)
   //  height: 800//Screen.height
@@ -158,7 +165,7 @@ PC3.Page {
 
     Timer {
         id: runningCountRefreshTimer
-        interval: 100
+        interval: main.runningCountRefreshInterval
         repeat: true
 
         property int remainingRuns: 0
@@ -218,7 +225,11 @@ PC3.Page {
         imagePath: "dialogs/background"
         enabledBorders: viewConfig.enabledBorders
 
-        readonly property int headerMargin: header.height + 50 /*magical number in order to fill the top gap*/
+        // The FrameSvg "dialogs/background" has an intrinsic top margin that the
+        // header sits inside. This offset compensates so the background extends
+        // above the header to align with the view's top edge.
+        readonly property int frameSvgTopOverhang: 50
+        readonly property int headerMargin: header.height + frameSvgTopOverhang
 
         onEnabledBordersChanged: viewConfig.updateEffects()
         Component.onCompleted: viewConfig.updateEffects()
@@ -333,8 +344,6 @@ PC3.Page {
             RowLayout {
                 PC3.TextField {
                     id: searchInput
-                    // PC3.TextField resets the colorSet to View (dark text); override
-                    // so typed text matches the Complementary (light) context.
                     Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
                     Kirigami.Theme.inherit: false
                     Layout.fillWidth: true
@@ -380,7 +389,7 @@ PC3.Page {
 
     Timer {
         id: setModelTimer
-        interval: 20
+        interval: main.setModelDelay
         running: true
         onTriggered: {
             if (widgetExplorer && widgetExplorer.widgetsModel) {
@@ -470,7 +479,7 @@ PC3.Page {
         // keeps track of the applets the user wants to uninstall
         property var applets: []
 
-        interval: 200
+        interval: main.pendingUninstallDelay
         onTriggered: {
             if (!widgetExplorer || typeof widgetExplorer.uninstall !== "function") {
                 applets = []

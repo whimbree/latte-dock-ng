@@ -59,6 +59,14 @@
 #define BLOCKHIDINGNEEDSATTENTIONTYPE "View::Containment::NeedsAttentionState()"
 #define BLOCKHIDINGREQUESTSINPUTTYPE "View::Containment::RequestsInputState()"
 
+// Named timer intervals and layout constants
+constexpr int kReleaseGrabIntervalMs = 400;
+constexpr int kInitLayoutIntervalMs = 100;
+constexpr int kWidgetExplorerShowDelayMs = 250;
+constexpr int kEditThicknessSmallSpacing = 4;
+constexpr int kVisibleHackTimer1Ms = 400;
+constexpr int kVisibleHackTimer2Ms = 2500;
+
 namespace Latte {
 
 View::View(Plasma::Corona *corona, QScreen *targetScreen)
@@ -101,7 +109,7 @@ View::View(Plasma::Corona *corona, QScreen *targetScreen)
         m_positioner->setScreenToFollow(m_corona->screenPool()->primaryScreen());
     }
 
-    m_releaseGrabTimer.setInterval(400);
+    m_releaseGrabTimer.setInterval(kReleaseGrabIntervalMs);
     m_releaseGrabTimer.setSingleShot(true);
     connect(&m_releaseGrabTimer, &QTimer::timeout, this, &View::releaseGrab);
 
@@ -599,7 +607,7 @@ void View::showWidgetExplorer(const QPointF &point)
     auto widgetExplorerView = m_corona->viewSettingsFactory()->widgetExplorerView(this);
 
     if (!widgetExplorerView->isVisible()) {
-        widgetExplorerView->showAfter(250);
+        widgetExplorerView->showAfter(kWidgetExplorerShowDelayMs);
     }
 }
 
@@ -964,11 +972,13 @@ void View::setMaxLength(float length)
 
 int View::editThickness() const
 {
-    int smallspacing = 4;
-    int ruler_height{m_fontPixelSize};
-    int header_height{m_fontPixelSize + 2*smallspacing};
+    constexpr int kHeaderSpacingMultiplier = 2;
+    constexpr int kTotalSpacingMultiplier = 6;
 
-    return m_maxNormalThickness + ruler_height + header_height + 6*smallspacing;
+    int ruler_height{m_fontPixelSize};
+    int header_height{m_fontPixelSize + kHeaderSpacingMultiplier * kEditThicknessSmallSpacing};
+
+    return m_maxNormalThickness + ruler_height + header_height + kTotalSpacingMultiplier * kEditThicknessSmallSpacing;
 }
 
 int View::maxThickness() const
@@ -1189,7 +1199,7 @@ void View::setLayout(Layout::GenericLayout *layout)
 
         //! Sometimes the activity isn't completely ready, by adding a delay
         //! we try to catch up
-        m_initLayoutTimer.setInterval(100);
+        m_initLayoutTimer.setInterval(kInitLayoutIntervalMs);
         m_initLayoutTimer.setSingleShot(true);
         connectionsLayout << connect(&m_initLayoutTimer, &QTimer::timeout, this, [&]() {
             if (m_layout && m_visibility) {
@@ -1238,8 +1248,8 @@ void View::setLayout(Layout::GenericLayout *layout)
             //! IMPORTANT ::: Fixing KWin Faulty Behavior that KWin hides ALL Views when an Activity stops
             //! with no reason!!
 
-            m_visibleHackTimer1.setInterval(400);
-            m_visibleHackTimer2.setInterval(2500);
+            m_visibleHackTimer1.setInterval(kVisibleHackTimer1Ms);
+            m_visibleHackTimer2.setInterval(kVisibleHackTimer2Ms);
             m_visibleHackTimer1.setSingleShot(true);
             m_visibleHackTimer2.setSingleShot(true);
 

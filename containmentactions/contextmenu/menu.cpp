@@ -26,6 +26,8 @@
 #include <Plasma/Containment>
 #include <Plasma/Corona>
 
+constexpr int kDbusCallDelayMs = 400;
+
 const int MEMORYINDEX = 0;
 const int ACTIVELAYOUTSINDEX = 1;
 const int CURRENTLAYOUTSINDEX = 2;
@@ -457,7 +459,7 @@ void Menu::addView(QAction *action)
 {
     const QString templateId = action->data().toString();
 
-    QTimer::singleShot(400, [this, templateId]() {
+    QTimer::singleShot(kDbusCallDelayMs, [this, templateId]() {
         QDBusInterface iface("org.kde.lattedock", "/Latte", "", QDBusConnection::sessionBus());
 
         if (iface.isValid()) {
@@ -470,7 +472,7 @@ void Menu::moveToLayout(QAction *action)
 {
     const QString layoutName = action->data().toString();
 
-    QTimer::singleShot(400, [this, layoutName]() {
+    QTimer::singleShot(kDbusCallDelayMs, [this, layoutName]() {
         QDBusInterface iface("org.kde.lattedock", "/Latte", "", QDBusConnection::sessionBus());
 
         if (iface.isValid()) {
@@ -484,7 +486,7 @@ void Menu::switchToLayout(QAction *action)
     const QString layout = action->data().toString();
 
     if (layout == QLatin1String(" _show_latte_settings_dialog_")) {
-        QTimer::singleShot(400, [this]() {
+        QTimer::singleShot(kDbusCallDelayMs, [this]() {
             QDBusInterface iface("org.kde.lattedock", "/Latte", "", QDBusConnection::sessionBus());
 
             if (iface.isValid()) {
@@ -492,7 +494,7 @@ void Menu::switchToLayout(QAction *action)
             }
         });
     } else {
-        QTimer::singleShot(400, [this, layout]() {
+        QTimer::singleShot(kDbusCallDelayMs, [this, layout]() {
             QDBusInterface iface("org.kde.lattedock", "/Latte", "", QDBusConnection::sessionBus());
 
             if (iface.isValid()) {

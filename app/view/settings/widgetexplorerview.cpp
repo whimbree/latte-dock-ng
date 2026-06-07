@@ -24,6 +24,9 @@
 namespace Latte {
 namespace ViewPart {
 
+constexpr int kWidgetExplorerVerticalMargin = 100;
+constexpr int kSyncGeometryDelayMs = 400;
+
 WidgetExplorerView::WidgetExplorerView(Latte::View *view)
     : SubConfigView(view, QString("#widgetexplorerview#"), true)
 {
@@ -117,7 +120,7 @@ void WidgetExplorerView::syncGeometry()
     const QSize size(rootObject()->width(), rootObject()->height());
     auto availGeometry = availableScreenGeometry();
 
-    int margin = availGeometry.height() == m_latteView->screenGeometry().height() ? 100 : 0;
+    int margin = availGeometry.height() == m_latteView->screenGeometry().height() ? kWidgetExplorerVerticalMargin : 0;
     auto geometry = QRect(availGeometry.x(), availGeometry.y(), size.width(), availGeometry.height()-margin);
 
     updateEnabledBorders();
@@ -157,7 +160,7 @@ void WidgetExplorerView::showEvent(QShowEvent *ev)
     requestActivate();
 
     m_screenSyncTimer.start();
-    QTimer::singleShot(400, this, &WidgetExplorerView::syncGeometry);
+    QTimer::singleShot(kSyncGeometryDelayMs, this, &WidgetExplorerView::syncGeometry);
 
     Q_EMIT showSignal();
 }
