@@ -395,6 +395,10 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
     /usr/share/latte
     /usr/share/plasma
 )
+# QML modules not captured by .so auto-detection:
+# - kirigami: loaded via QML import, no direct .so link from latte
+# - knewstuff: QML plugin files needed at runtime
+set(CPACK_RPM_PACKAGE_REQUIRES "kf6-kirigami, kf6-knewstuff")
 
 # DEB
 set(CPACK_DEBIAN_PACKAGE_NAME "latte-dock-ng")
@@ -405,5 +409,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "kde")
 set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${WEBSITE}")
 set(CPACK_DEBIAN_PACKAGE_SHLIBS ON)
 set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+# QML modules not captured by .so auto-detection
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "qml6-module-org-kde-kirigami, qml6-module-org-kde-newstuff")
 
 include(CPack)

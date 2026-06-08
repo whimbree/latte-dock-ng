@@ -18,6 +18,16 @@ pkgdesc = Latte Dock NG - Plasma 6 desktop dock
 url = https://github.com/ruizhi-lab/latte-dock-ng
 arch = x86_64
 license = GPL-2.0-or-later
+depend = qt6-base
+depend = qt6-declarative
+depend = qt6-wayland
+depend = kf6-kirigami
+depend = kf6-knewstuff
+depend = kf6-kcmutils
+depend = kf6-plasma
+depend = kf6-kwayland
+depend = layer-shell-qt
+depend = hicolor-icon-theme
 EOF
 
 cd /staging
