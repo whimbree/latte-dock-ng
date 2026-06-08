@@ -73,10 +73,21 @@ public:
     //! Configure the layer-shell surface for struts reservation.
     //! In Plasma 6, PanelBehavior is deprecated and ignored by KWin.
     //! Struts must be set via zwlr_layer_shell_v1 exclusive_zone.
-    void configure(Plasma::Types::Location location, const QRect &rect) {
+    void configure(Plasma::Types::Location location, const QRect &rect, QScreen *screen) {
         using Anchor = LayerShellQt::Window::Anchor;
 
+        //! Associate the ghost window with the correct screen before LayerShell setup.
+        //! Without this, the compositor may attach the layer surface to the wrong
+        //! wl_output, causing struts to be reserved on an incorrect monitor in
+        //! multi-screen setups.
+        if (screen) {
+            setScreen(screen);
+        }
+
         auto *layerWindow = LayerShellQt::Window::get(this);
+        if (screen) {
+            layerWindow->setScreen(screen);
+        }
 
         LayerShellQt::Window::Anchors anchors;
         int exclusiveZone = 0;
@@ -397,7 +408,7 @@ void WaylandInterface::setViewStruts(QWindow &view, const QRect &rect, Plasma::T
     //! In Plasma 6, PanelBehavior is deprecated and ignored by KWin.
     //! Struts are now set via the zwlr_layer_shell_v1 protocol using
     //! exclusive_zone (provided by LayerShellQt).
-    w->configure(location, rect);
+    w->configure(location, rect, view.screen());
 }
 
 void WaylandInterface::switchToNextVirtualDesktop()

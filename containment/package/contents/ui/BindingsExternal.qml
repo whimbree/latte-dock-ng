@@ -309,12 +309,14 @@ Item {
             var edgeThickness = isCapableToHideScreenGap ? thicknessForIsCapableToHideScreenGap : metrics.mask.screenEdge * mirrorGapFactor;
 
             if (root.isModernDockStyle) {
-                //! Modern: include full item area + screen edge gap
-                return edgeThickness + metrics.mask.thickness.maxNormalForItemsWithoutScreenEdge;
+                //! Modern: reserve current visible panel thickness + screen edge gap.
+                //! Using current values (not max) so the exclusive zone matches the
+                //! actual panel height rather than its maximum possible expansion.
+                return edgeThickness + metrics.iconSize + metrics.margin.tailThickness + metrics.margin.headThickness;
             } else {
                 //! Classic: reserve up to icon visual top edge only (tail margin + icon),
                 //! not the full head margin which extends beyond the visible panel area.
-                return metrics.maxIconSize + metrics.margin.maxTailThickness;
+                return metrics.iconSize + metrics.margin.tailThickness;
             }
         }
     }
