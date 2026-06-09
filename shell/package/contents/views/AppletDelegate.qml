@@ -49,13 +49,20 @@ Item {
             main.draggingWidget = false;
         }
 
+        Timer {
+            id: addDebounceTimer
+            interval: 400
+            repeat: false
+        }
+
         MouseArea {
             id: mouseArea
             anchors.fill: parent
             onDoubleClicked: {
-                if (!delegate.pendingUninstall) {
+                if (!delegate.pendingUninstall && !addDebounceTimer.running) {
                     widgetExplorer.addApplet(pluginName);
                     main.scheduleRunningCountRefresh();
+                    addDebounceTimer.start();
                 }
             }
         }
