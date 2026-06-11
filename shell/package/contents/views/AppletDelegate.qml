@@ -31,6 +31,12 @@ Item {
         onHoveredChanged: if (hovered) delegate.GridView.view.currentIndex = index
     }
 
+    Timer {
+        id: addDebounceTimer
+        interval: 500
+        repeat: false
+    }
+
     DragArea {
         anchors.fill: parent
         supportedActions: Qt.MoveAction | Qt.LinkAction
@@ -49,21 +55,25 @@ Item {
             main.draggingWidget = false;
         }
 
-        Timer {
-            id: addDebounceTimer
-            interval: 400
-            repeat: false
-        }
-
         MouseArea {
             id: mouseArea
             anchors.fill: parent
             onDoubleClicked: {
-                if (!delegate.pendingUninstall && !addDebounceTimer.running) {
-                    widgetExplorer.addApplet(pluginName);
-                    main.scheduleRunningCountRefresh();
-                    addDebounceTimer.start();
+                if (addDebounceTimer.running) return;
+                if (delegate.pendingUninstall) return;
+                addDebounceTimer.start();
+
+                // Separators placed at the end of the dock are pruned by
+                // containment sanitization. Instead, drag the separator to
+                // a position between applets or use the right-click context
+                // menu on a dock icon ("Add Left/Right Separator").
+                if (pluginName === "org.kde.latte.separator"
+                        || pluginName === "audoban.applet.separator") {
+                    return;
                 }
+
+                widgetExplorer.addApplet(pluginName);
+                main.scheduleRunningCountRefresh();
             }
         }
 
