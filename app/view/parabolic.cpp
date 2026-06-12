@@ -9,6 +9,7 @@
 #include "view.h"
 
 // Qt
+#include <QDragMoveEvent>
 #include <QHoverEvent>
 #include <QMetaObject>
 
@@ -101,6 +102,7 @@ void Parabolic::onEvent(QEvent *e)
     switch (e->type()) {
 
     case QEvent::Leave:
+    case QEvent::DragLeave:
         setCurrentParabolicItem(nullptr);
         break;
     case QEvent::MouseMove:
@@ -111,6 +113,27 @@ void Parabolic::onEvent(QEvent *e)
     case QEvent::HoverMove:
         if (auto he = dynamic_cast<QHoverEvent *>(e)) {
             handlePointerMove(he->position());
+        }
+        break;
+    case QEvent::DragMove:
+        if (auto de = dynamic_cast<QDragMoveEvent *>(e)) {
+            // During drag, QML MouseArea hover events are suppressed, so no
+            // ParabolicArea item is set as current.  Walk the visual item tree
+            // from the cursor position to find an item that accepts parabolic
+            // enter/move signals (identified by the "parabolicEntered" method).
+            if (!m_currentParabolicItem && m_view) {
+                QPointF pos = de->position();
+                QQuickItem *child = m_view->contentItem()->childAt(pos.x(), pos.y());
+                while (child) {
+                    int enterIdx = child->metaObject()->indexOfMethod("parabolicEntered(real,real)");
+                    if (enterIdx >= 0) {
+                        setCurrentParabolicItem(child);
+                        break;
+                    }
+                    child = child->parentItem();
+                }
+            }
+            handlePointerMove(de->position());
         }
         break;
     default:

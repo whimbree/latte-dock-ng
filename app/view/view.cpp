@@ -113,6 +113,12 @@ View::View(Plasma::Corona *corona, QScreen *targetScreen)
     m_releaseGrabTimer.setSingleShot(true);
     connect(&m_releaseGrabTimer, &QTimer::timeout, this, &View::releaseGrab);
 
+    // Plasmoid drag-drop timer: defers QML item access to next event loop iteration
+    // to avoid breaking the Wayland drag event chain (Qt 6 + event() override issue).
+    m_plasmoidDragTimer.setSingleShot(true);
+    m_plasmoidDragTimer.setInterval(0);
+    connect(&m_plasmoidDragTimer, &QTimer::timeout, this, &View::updatePlasmoidDrag);
+
     connect(m_interface, &ViewPart::ContainmentInterface::hasExpandedAppletChanged, this, &View::updateTransientWindowsTracking);
 
     connect(this, &View::containmentChanged, this, &View::groupIdChanged);
@@ -1308,6 +1314,125 @@ bool View::mimeContainsPlasmoid(QMimeData *mimeData, QString name)
     return false;
 }
 
+void View::updatePlasmoidDrag()
+{
+    // This slot is called via m_plasmoidDragTimer (0ms singleshot, deferred to next
+    // event loop iteration).  Deferring avoids touching QQuickItems during Wayland
+    // DragMove processing, which would break subsequent drag event delivery.
+    if (!m_containsDrag || !m_plasmoidDragActive) {
+        cleanupDndSpacer();
+        return;
+    }
+
+    if (!m_interface || !m_interface->layoutManager()) {
+        return;
+    }
+
+    QObject *lm = m_interface->layoutManager();
+    QQuickItem *dndSpacer = lm->property("dndSpacerItem").value<QQuickItem *>();
+    if (!dndSpacer) {
+        return;
+    }
+
+    // Show dndSpacer at the insertion point — this pushes adjacent applet icons
+    // apart and creates the wave/gap visual indicator.
+    dndSpacer->setOpacity(1.0);
+
+    // Map from window coords to rootItem coords for accurate positioning
+    QQuickItem *rootItem = lm->property("rootItem").value<QQuickItem *>();
+    QPointF mappedPos = (rootItem && contentItem())
+        ? rootItem->mapFromItem(contentItem(), m_lastPlasmoidDragPos)
+        : m_lastPlasmoidDragPos;
+
+    QMetaObject::invokeMethod(lm, "insertAtCoordinates",
+                              Q_ARG(QQuickItem *, dndSpacer),
+                              Q_ARG(int, (int)mappedPos.x()),
+                              Q_ARG(int, (int)mappedPos.y()));
+}
+
+void View::handlePlasmoidDrop(QDropEvent *de)
+{
+    // Drop is the terminal event in the drag sequence — synchronous QML access
+    // is safe here because there are no subsequent DragMove events to lose.
+    m_plasmoidDragTimer.stop();
+
+    if (!m_interface) {
+        return;
+    }
+
+    int eventx = (int)de->position().x();
+    int eventy = (int)de->position().y();
+
+    // Compute insertion index from dndSpacer position, then clean it up.
+    // createApplet() returns the Applet* synchronously, and we call
+    // LayoutManager::addAppletItem() directly with the insertion index.
+    // The later Containment.onAppletAdded signal will be a no-op because
+    // the applet container already exists.
+    int dndIndex = -1;
+
+    if (m_interface->layoutManager()) {
+        QObject *lm = m_interface->layoutManager();
+        QQuickItem *dndSpacer = lm->property("dndSpacerItem").value<QQuickItem *>();
+
+        if (dndSpacer) {
+            // Map from window coords to rootItem coords for accurate positioning
+            QQuickItem *rootItem = lm->property("rootItem").value<QQuickItem *>();
+            QPointF mappedPos = (rootItem && contentItem())
+                ? rootItem->mapFromItem(contentItem(), QPointF(eventx, eventy))
+                : QPointF(eventx, eventy);
+
+            QMetaObject::invokeMethod(lm, "insertAtCoordinates",
+                                      Q_ARG(QQuickItem *, dndSpacer),
+                                      Q_ARG(int, (int)mappedPos.x()),
+                                      Q_ARG(int, (int)mappedPos.y()));
+
+            QMetaObject::invokeMethod(lm, "dndSpacerIndex", Q_RETURN_ARG(int, dndIndex));
+
+            // Reset dndSpacer — we will insert via addAppletItem(index) directly
+            dndSpacer->setOpacity(0.0);
+            if (rootItem) {
+                dndSpacer->setParentItem(rootItem);
+            }
+        }
+    }
+
+    // Set pending insertion index on the layout manager BEFORE createApplet().
+    // The Containment.onAppletAdded signal fires during createApplet() with
+    // default (0,0) coordinates.  addAppletItem checks for the pending index
+    // and uses it instead, achieving position-aware insertion at the drop point.
+    if (dndIndex >= 0 && m_interface->layoutManager()) {
+        m_interface->layoutManager()->setProperty("_latte_pendingInsertionIndex", dndIndex);
+    }
+
+    // Create the applet.  The Containment.onAppletAdded handler in main.qml
+    // calls addAppletItem() with default (0,0) but our pending index override
+    // in addAppletItem(QObject*,int,int) redirects to addAppletItem(index).
+    const QString data = de->mimeData()->data(QStringLiteral("text/x-plasmoidservicename"));
+    const QStringList names = data.split('\n', Qt::SkipEmptyParts);
+    for (const QString &name : names) {
+        if (auto *cont = containment()) {
+            cont->createApplet(name);
+        }
+    }
+}
+
+void View::cleanupDndSpacer()
+{
+    if (!m_interface || !m_interface->layoutManager()) {
+        return;
+    }
+
+    QObject *lm = m_interface->layoutManager();
+    QQuickItem *dndSpacer = lm->property("dndSpacerItem").value<QQuickItem *>();
+    if (dndSpacer) {
+        dndSpacer->setOpacity(0.0);
+        QQuickItem *rootItem = lm->property("rootItem").value<QQuickItem *>();
+        if (rootItem) {
+            dndSpacer->setParentItem(rootItem);
+        }
+    }
+}
+
 Latte::Data::View View::data() const
 {
     Latte::Data::View vdata;
@@ -1455,23 +1580,34 @@ bool View::event(QEvent *e)
             break;
 
         case QEvent::DragLeave:
+            if (m_plasmoidDragActive) {
+                m_plasmoidDragActive = false;
+                // Restart timer to trigger dndSpacer cleanup in updatePlasmoidDrag
+                if (!m_plasmoidDragTimer.isActive()) {
+                    m_plasmoidDragTimer.start();
+                }
+            }
             setContainsDrag(false);
             break;
 
         case QEvent::DragMove:
+            if (auto de = dynamic_cast<QDragMoveEvent *>(e)) {
+                if (de->mimeData()->hasFormat(QStringLiteral("text/x-plasmoidservicename"))) {
+                    m_plasmoidDragActive = true;
+                    m_lastPlasmoidDragPos = de->position();
+                    if (!m_plasmoidDragTimer.isActive()) {
+                        m_plasmoidDragTimer.start();
+                    }
+                }
+            }
             sinkableevent = true;
             break;
 
         case QEvent::Drop:
             if (auto de = dynamic_cast<QDropEvent *>(e)) {
                 if (de->mimeData()->hasFormat(QStringLiteral("text/x-plasmoidservicename"))) {
-                    const QString data = de->mimeData()->data(QStringLiteral("text/x-plasmoidservicename"));
-                    const QStringList names = data.split('\n', Qt::SkipEmptyParts);
-                    for (const QString &name : names) {
-                        if (auto *cont = containment()) {
-                            cont->createApplet(name);
-                        }
-                    }
+                    m_plasmoidDragActive = false;
+                    handlePlasmoidDrop(de);
                 }
             }
             setContainsDrag(false);

@@ -1835,6 +1835,17 @@ void LayoutManager::cleanupOptions()
 
 void LayoutManager::addAppletItem(QObject *applet, int index)
 {
+    // Check for a pending insertion index set by View::handlePlasmoidDrop.
+    // The QML Containment.onAppletAdded handler resolves to this overload
+    // (not the (x,y) overload) because the signal passes a QRectF, not (int,int).
+    // We override the index here to achieve position-aware insertion.
+    QVariant pendingIndex = property("_latte_pendingInsertionIndex");
+    if (pendingIndex.isValid()) {
+        int realIndex = pendingIndex.toInt();
+        setProperty("_latte_pendingInsertionIndex", QVariant()); // clear
+        index = realIndex;
+    }
+
     if (!m_startLayout || !m_mainLayout || !m_endLayout || index < 0) {
         return;
     }
@@ -1904,6 +1915,17 @@ void LayoutManager::addAppletItem(QObject *applet, int x, int y)
 
     const int id = appletId(applet);
     if (id > 0 && appletItem(id)) {
+        return;
+    }
+
+    // Check for a pending insertion index set by View::handlePlasmoidDrop.
+    // When set, this overrides the (x,y) from the Plasma signal (which are
+    // always default 0,0 when createApplet() is called without coordinates).
+    QVariant pendingIndex = property("_latte_pendingInsertionIndex");
+    if (pendingIndex.isValid()) {
+        int index = pendingIndex.toInt();
+        setProperty("_latte_pendingInsertionIndex", QVariant()); // clear
+        addAppletItem(applet, index);
         return;
     }
 

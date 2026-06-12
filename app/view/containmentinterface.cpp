@@ -1775,6 +1775,26 @@ void ContainmentInterface::onAppletAdded(Plasma::Applet *applet)
         return;
     }
 
+    // Check for a pending insertion index set by View::handlePlasmoidDrop.
+    // The QML Containment.onAppletAdded handler cannot match the Plasma 6
+    // signal signature (appletAdded(Plasma::Applet*, const QRectF&) vs the
+    // expected (applet, int, int)), so we handle position-aware insertion
+    // here in C++ instead.
+    if (m_layoutManager) {
+        QVariant pendingIndex = m_layoutManager->property("_latte_pendingInsertionIndex");
+        if (pendingIndex.isValid()) {
+            int index = pendingIndex.toInt();
+            m_layoutManager->setProperty("_latte_pendingInsertionIndex", QVariant()); // clear
+
+            // Call addAppletItem via invokeMethod because the LayoutManager
+            // type is defined in the containment plugin, not linked directly.
+            QMetaObject::invokeMethod(m_layoutManager,
+                                      "addAppletItem",
+                                      Q_ARG(QObject *, applet),
+                                      Q_ARG(int, index));
+        }
+    }
+
     PlasmaQuick::AppletQuickItem *ai = applet->property("_plasma_graphicObject").value<PlasmaQuick::AppletQuickItem *>();
     bool isSubContainment = Layouts::Storage::self()->isSubContainment(m_view->corona(), applet); //we use corona() to make sure that returns true even when it is first created from user
     int currentAppletId = applet->id();

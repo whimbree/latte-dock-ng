@@ -365,12 +365,16 @@ private Q_SLOTS:
     void restoreConfig();
     void saveConfig();
 
+    void updatePlasmoidDrag();
+
 private:
     void initSignalingForLocationChangeSliding();
     void setupWaylandIntegration();
     void updateAppletContainsMethod();
 
     void setContainsDrag(bool contains);
+    void handlePlasmoidDrop(QDropEvent *de);
+    void cleanupDndSpacer();
 
 private:
     Plasma::Containment *containmentById(uint id);
@@ -443,6 +447,11 @@ private:
 
     //! track transientWindows
     QList<QWindow *> m_transientWindows;
+
+    //! Plasmoid drag-drop state for position-aware insertion and wave animation
+    QTimer m_plasmoidDragTimer;
+    QPointF m_lastPlasmoidDragPos;
+    bool m_plasmoidDragActive{false};
 
     KWayland::Client::PlasmaShellSurface *m_shellSurface{nullptr};
 };
