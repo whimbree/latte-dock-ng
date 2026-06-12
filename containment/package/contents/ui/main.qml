@@ -1279,24 +1279,20 @@ ContainmentItem {
         onWheel: function(wheel) {
             if (wheelIsBlocked) return;
 
-            // Do not consume wheel events over system tray applets.
-            // The system tray's internal PlasmoidItem.onWheel forwards
-            // wheel events to compact-representation MouseAreas (volume,
-            // brightness, media player, etc.). Intercepting them here
-            // would break all scroll-wheel actions on those icons.
+            // Do not consume wheel events over any external applet.
+            // Applets such as volume, brightness, media player, and the
+            // system tray handle wheel events internally. Intercepting
+            // them here would break all scroll-wheel actions on those icons.
             var localPos = mapToItem(layoutsContainer, wheel.x, wheel.y);
             for (var ai = 0; ai < plasmoid.applets.length; ++ai) {
                 var a = plasmoid.applets[ai];
-                if (a.pluginName === "org.kde.plasma.systemtray"
-                        || a.pluginName === "org.nomad.systemtray") {
-                    var systrayItem = fastLayoutManager.resolveAppletQuickItem(a);
-                    if (systrayItem) {
-                        var mappedPos = mapToItem(systrayItem, wheel.x, wheel.y);
-                        if (mappedPos.x >= 0 && mappedPos.x <= systrayItem.width
-                                && mappedPos.y >= 0 && mappedPos.y <= systrayItem.height) {
-                            wheel.accepted = false;
-                            return;
-                        }
+                var item = fastLayoutManager.resolveAppletQuickItem(a);
+                if (item) {
+                    var mappedPos = mapToItem(item, wheel.x, wheel.y);
+                    if (mappedPos.x >= 0 && mappedPos.x <= item.width
+                            && mappedPos.y >= 0 && mappedPos.y <= item.height) {
+                        wheel.accepted = false;
+                        return;
                     }
                 }
             }
