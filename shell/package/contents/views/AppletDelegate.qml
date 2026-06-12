@@ -63,15 +63,6 @@ Item {
                 if (delegate.pendingUninstall) return;
                 addDebounceTimer.start();
 
-                // Separators placed at the end of the dock are pruned by
-                // containment sanitization. Instead, drag the separator to
-                // a position between applets or use the right-click context
-                // menu on a dock icon ("Add Left/Right Separator").
-                if (pluginName === "org.kde.latte.separator"
-                        || pluginName === "audoban.applet.separator") {
-                    return;
-                }
-
                 widgetExplorer.addApplet(pluginName);
                 main.scheduleRunningCountRefresh();
             }
