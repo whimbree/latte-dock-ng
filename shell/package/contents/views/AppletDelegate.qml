@@ -31,12 +31,6 @@ Item {
         onHoveredChanged: if (hovered) delegate.GridView.view.currentIndex = index
     }
 
-    Timer {
-        id: addDebounceTimer
-        interval: 500
-        repeat: false
-    }
-
     DragArea {
         anchors.fill: parent
         supportedActions: Qt.MoveAction | Qt.LinkAction
@@ -55,14 +49,13 @@ Item {
             main.draggingWidget = false;
         }
 
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            onDoubleClicked: {
-                if (addDebounceTimer.running) return;
-                if (delegate.pendingUninstall) return;
-                addDebounceTimer.start();
-
+        // Single-click to add widget, matching standard Plasma shell behaviour.
+        // TapHandler coexists with DragArea — TapHandler handles taps,
+        // DragArea handles drags. They don't interfere with each other.
+        TapHandler {
+            id: tapHandler
+            enabled: !delegate.pendingUninstall
+            onTapped: {
                 widgetExplorer.addApplet(pluginName);
                 main.scheduleRunningCountRefresh();
             }
