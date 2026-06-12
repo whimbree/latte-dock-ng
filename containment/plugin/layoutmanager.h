@@ -104,6 +104,7 @@ public Q_SLOTS:
     Q_INVOKABLE QObject *resolveAppletQuickItem(QObject *applet) const;
 
     Q_INVOKABLE int dndSpacerIndex();
+    Q_INVOKABLE int defaultInsertionIndex() const;
 
     Q_INVOKABLE bool isMasqueradedIndex(const int &x, const int &y);
     Q_INVOKABLE int masquearadedIndex(const int &x, const int &y);

@@ -828,6 +828,16 @@ void ContainmentInterface::addApplet(const QString &pluginId)
     }
 
     if (!pluginpath.isEmpty()) {
+        // Calculate the default insertion index and set it BEFORE
+        // creating the applet so the QML handler's addAppletItem call
+        // picks it up and places the widget at the correct position.
+        if (m_layoutManager) {
+            QList<int> order = m_layoutManager->property("order").value<QList<int>>();
+            if (!order.isEmpty()) {
+                int defaultIndex = calculateDefaultAppletInsertionIndex(order);
+                m_layoutManager->setProperty("_latte_pendingInsertionIndex", defaultIndex);
+            }
+        }
         m_view->containment()->createApplet(pluginId);
     }
 }
@@ -1792,6 +1802,23 @@ void ContainmentInterface::onAppletAdded(Plasma::Applet *applet)
                                       "addAppletItem",
                                       Q_ARG(QObject *, applet),
                                       Q_ARG(int, index));
+        } else {
+            // No drag-drop index. The QML handler never fires in Plasma 6,
+            // so we must create the container ourselves here. Place new
+            // applets at the end of left-side widgets (before system tray).
+            QList<int> order = m_layoutManager->property("order").value<QList<int>>();
+            if (!order.isEmpty() && !order.contains(applet->id())) {
+                const QString pluginId = pluginIdFromMetaData(applet->pluginMetaData());
+                if (pluginId != QLatin1String(kLatteSeparatorPluginId)
+                    && pluginId != QLatin1String(kLegacySeparatorPluginId)
+                    && pluginId != QLatin1String(kInternalViewSplitterPluginId)) {
+                    int defaultIndex = calculateDefaultAppletInsertionIndex(order);
+                    QMetaObject::invokeMethod(m_layoutManager,
+                                              "addAppletItem",
+                                              Q_ARG(QObject *, applet),
+                                              Q_ARG(int, defaultIndex));
+                }
+            }
         }
     }
 
@@ -1899,6 +1926,38 @@ QList<int> ContainmentInterface::toIntList(const QVariantList &list)
     }
 
     return converted;
+}
+
+int ContainmentInterface::calculateDefaultAppletInsertionIndex(const QList<int> &order)
+{
+    // Identify boundary applets (system tray, task manager).  New
+    // applets go just before the first boundary encountered when
+    // scanning left-to-right.  If none found, append to the end.
+
+    QSet<int> boundaryIds;
+
+    if (m_view && m_view->containment()) {
+        const auto applets = m_view->containment()->applets();
+        for (const auto *applet : applets) {
+            if (!applet) {
+                continue;
+            }
+            const QString pluginId = pluginIdFromMetaData(applet->pluginMetaData());
+            if (pluginId == QLatin1String("org.kde.plasma.systemtray")
+                || pluginId == QLatin1String("org.nomad.systemtray")
+                || pluginId == QLatin1String("org.kde.latte.plasmoid")) {
+                boundaryIds.insert(static_cast<int>(applet->id()));
+            }
+        }
+    }
+
+    for (int i = 0; i < order.count(); ++i) {
+        if (boundaryIds.contains(order[i])) {
+            return i; // Insert just before the boundary
+        }
+    }
+
+    return order.count();
 }
 
 }

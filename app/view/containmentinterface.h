@@ -120,7 +120,7 @@ public Q_SLOTS:
     Q_INVOKABLE bool removeInternalSeparatorAtLeftBoundaryOfApplet(const int appletId);
     Q_INVOKABLE bool removeInternalSeparatorAtRightBoundaryOfApplet(const int appletId);
 
-    void addApplet(const QString &pluginId);
+    Q_INVOKABLE void addApplet(const QString &pluginId);
     void addApplet(QObject *metadata, int x, int y);
     void removeApplet(const int &id);
     void setAppletsOrder(const QList<int> &order);
@@ -178,6 +178,7 @@ private:
     void initAppletConfigurationSignals(const int &id, QQmlPropertyMap *configuration);
     void cleanupInvalidSeparatorApplets();
     void saveAppletsOrder(const QList<int> &order);
+    int calculateDefaultAppletInsertionIndex(const QList<int> &order);
 
     bool appletIsExpandable(PlasmaQuick::AppletQuickItem *appletQuickItem) const;
 

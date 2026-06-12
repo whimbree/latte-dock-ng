@@ -717,7 +717,25 @@ ContainmentItem {
     }
 
     Containment.onAppletAdded: function(applet, x, y) {
-        if (fastLayoutManager.isMasqueradedIndex(x, y)) {
+        // C++ drag-drop path sets _latte_pendingInsertionIndex before
+        // creating the applet.  Use it when present.
+        var pendingIndex = fastLayoutManager._latte_pendingInsertionIndex;
+        if (pendingIndex !== undefined && pendingIndex >= 0) {
+            fastLayoutManager.addAppletItem(applet, pendingIndex);
+            fastLayoutManager._latte_pendingInsertionIndex = undefined;
+        } else if (typeof x === "object" && x !== null) {
+            // Plasma 6: signal is appletAdded(Plasma::Applet*, const QRectF&).
+            // The QRectF arrives as x, and y is undefined.
+            var order = fastLayoutManager.order;
+            if (order && order.length > 0 && order.indexOf(applet.id) < 0) {
+                // New applet (e.g. double-click from Widget Explorer):
+                // place at end of left-side widgets (just before systray).
+                var defaultIdx = fastLayoutManager.defaultInsertionIndex();
+                fastLayoutManager.addAppletItem(applet, defaultIdx);
+            }
+            // else: startup saved applet — skip, the repair timer will
+            // create containers at the correct positions from saved order.
+        } else if (fastLayoutManager.isMasqueradedIndex(x, y)) {
             var index = fastLayoutManager.masquearadedIndex(x, y);
             fastLayoutManager.addAppletItem(applet, index);
         } else {

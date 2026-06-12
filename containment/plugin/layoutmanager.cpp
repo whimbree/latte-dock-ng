@@ -9,6 +9,7 @@
 #include <plugin/lattetypes.h>
 
 // Qt
+#include <QJsonArray>
 #include <QtMath>
 #include <QSequentialIterable>
 #include <QSet>
@@ -1805,11 +1806,57 @@ void LayoutManager::repairAppletContainers()
 
         int preferredIndex = m_order.indexOf(id);
         if (preferredIndex < 0) {
-            preferredIndex = m_order.count();
+            // Place new applets at the end of left-side widgets (just
+            // before the system tray / task manager) rather than at the
+            // very end of all icons.
+            preferredIndex = defaultInsertionIndex();
         }
 
         addAppletItem(applet, preferredIndex);
     }
+}
+
+int LayoutManager::defaultInsertionIndex() const
+{
+    // Identify boundary applets that mark where the "left-side user widget"
+    // group ends.  New applets are placed just before the first boundary
+    // applet encountered when scanning left-to-right.
+
+    QSet<int> boundaryIds;
+    const QList<QObject *> applets = plasmoidApplets();
+
+    for (QObject *obj : applets) {
+        Plasma::Applet *applet = nullptr;
+        int appletId = -1;
+
+        if (auto *quickItem = qobject_cast<PlasmaQuick::AppletQuickItem *>(obj)) {
+            applet = quickItem->applet();
+            appletId = applet ? static_cast<int>(applet->id()) : -1;
+        } else if (auto *backendApplet = qobject_cast<Plasma::Applet *>(obj)) {
+            applet = backendApplet;
+            appletId = static_cast<int>(backendApplet->id());
+        }
+
+        if (!applet || appletId < 0) {
+            continue;
+        }
+
+        const QString pluginId = applet->pluginMetaData().pluginId();
+        if (pluginId == QLatin1String("org.kde.plasma.systemtray")
+            || pluginId == QLatin1String("org.nomad.systemtray")
+            || pluginId == QLatin1String("org.kde.latte.plasmoid")) {
+            boundaryIds.insert(appletId);
+        }
+    }
+
+    for (int i = 0; i < m_order.count(); ++i) {
+        if (boundaryIds.contains(m_order[i])) {
+            return i; // Insert just before the boundary
+        }
+    }
+
+    // No boundary found — append to the end.
+    return m_order.count();
 }
 
 void LayoutManager::cleanupOptions()
