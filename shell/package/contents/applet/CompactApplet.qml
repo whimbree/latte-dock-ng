@@ -147,16 +147,32 @@ PlasmaCore.ToolTipArea {
         target.externalAppletNaturalWidth = w;
         target.externalAppletNaturalHeight = h;
 
-        // Assign a stable slot count (one-shot) so the wrapper does not
-        // oscillate. Using maxIconSize keeps the pixel width fixed across
-        // autosize adjustments, avoiding the autosize feedback loop.
-        var wrapper = target.wrapper;
-        if (wrapper && w > target.metrics.maxIconSize) {
-            var rawSlots = Math.ceil(w / target.metrics.maxIconSize);
-            if (rawSlots <= 4) {
-                wrapper.externalAppletForcedSlots = Math.min(3, rawSlots);
-            }
+        // Start polling for content width changes (e.g. clock text "1:00" → "12:34").
+        naturalWidthPollTimer.running = true;
+    }
+
+    function updateNaturalWidth() {
+        if (!compactRepresentation) {
+            return;
         }
+        var w = compactRepresentation.implicitWidth;
+        if (w <= 0) {
+            w = findDeepImplicitWidth(compactRepresentation, 0);
+        }
+        var target = appletItem || findAppletItem();
+        if (target && target.externalAppletDrawsAboveTasks
+            && w > 0 && w !== target.externalAppletNaturalWidth) {
+            target.externalAppletNaturalWidth = w;
+        }
+    }
+
+    // Keep the slot width in sync when clock text changes (e.g. "1:00" → "12:34").
+    Timer {
+        id: naturalWidthPollTimer
+        interval: 2000
+        repeat: true
+        running: false
+        onTriggered: updateNaturalWidth();
     }
 
     onCompactRepresentationChanged: {
