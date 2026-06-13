@@ -295,8 +295,7 @@ QtObject {
                 var ds = Server.defaultSink
                 if (ds && PreferredDevice) {
                     Server.defaultSinkChanged(ds)
-                    // Keep running — PreferredDevice is lazily created and
-                    // we need to retrigger whenever a new volume applet is added.
+                    interval = 30000 // back off to 30 s for low-overhead safety net
                 }
             } catch (e) {
                 // Server/PreferredDevice not registered in this module version
