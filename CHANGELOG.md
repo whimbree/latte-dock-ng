@@ -2,6 +2,12 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.1.20] - 2026-06-13
+
+### Fixed
+- Eliminated binding loop on `inNormalState` property in visibility controller.
+- Prevented false muted icon when no audio stream exists.
+
 ## [v1.1.19] - 2026-06-13
 
 ### Changed
