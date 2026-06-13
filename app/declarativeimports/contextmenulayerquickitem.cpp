@@ -463,17 +463,14 @@ void ContextMenuLayerQuickItem::addAppletActions(QMenu *desktopMenu, Plasma::App
         }
     }
 
-    if (m_latteView->containment()->immutability() == Plasma::Types::Mutable &&
-            (m_latteView->containment()->containmentType() != Plasma::Containment::Panel || m_latteView->containment()->isUserConfiguring())) {
+    // Show "Remove" on all applet context menus — a dock should always let
+    // the user remove widgets without entering edit mode.
+    {
         QAction *closeApplet = applet->internalAction(QStringLiteral("remove"));
-
-        //qDebug() << "checking for removal" << closeApplet;
-        if (closeApplet) {
+        if (closeApplet && closeApplet->isEnabled()) {
             if (!desktopMenu->isEmpty()) {
                 desktopMenu->addSeparator();
             }
-
-            //qDebug() << "adding close action" << closeApplet->isEnabled() << closeApplet->isVisible();
             desktopMenu->addAction(closeApplet);
         }
     }
