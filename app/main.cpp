@@ -59,6 +59,7 @@ inline bool shouldUseUserLocalQmlImports(int argc, char **argv);
 inline void ensureUserLocalQmlImportPaths(int argc, char **argv);
 inline void ensureKdeSessionEnvironment();
 inline bool isKdeSessionShuttingDown();
+inline void autoClearQmlCacheOnVersionChange();
 
 QString filterDebugMessageText;
 QString filterDebugLogFile;
@@ -99,6 +100,11 @@ int main(int argc, char **argv)
     KQuickAddons::QtQuickSettings::init();
 
     KLocalizedString::setApplicationDomain(Latte::App::TRANSLATIONDOMAIN);
+
+    // Automatically clear stale QML disk cache when the installed version changes.
+    // This prevents "works in user-mode, broken after ebuild install" regressions
+    // where the QML engine loads old compiled files from ~/.cache/lattedock/qmlcache.
+    autoClearQmlCacheOnVersionChange();
 
     //! Prime the Plasma global shared QML engine singleton early.
     //! plasmashell creates a process-wide shared QQmlEngine via
@@ -624,6 +630,42 @@ inline void ensureKdeSessionEnvironment()
 
     if (qEnvironmentVariableIsEmpty("KDE_SESSION_VERSION")) {
         qputenv("KDE_SESSION_VERSION", "6");
+    }
+}
+
+inline void autoClearQmlCacheOnVersionChange()
+{
+    const QString cachePath = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation)
+                              + QStringLiteral("/lattedock/qmlcache");
+    const QString versionFilePath = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation)
+                                    + QStringLiteral("/lattedock/qmlcache_version");
+    const QString currentVersion = QStringLiteral(VERSION);
+
+    QFile versionFile(versionFilePath);
+    QString cachedVersion;
+
+    if (versionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        cachedVersion = QString::fromUtf8(versionFile.readAll()).trimmed();
+        versionFile.close();
+    }
+
+    if (cachedVersion != currentVersion) {
+        QDir cacheDir(cachePath);
+        if (cacheDir.exists()) {
+            cacheDir.removeRecursively();
+            qDebug() << "QML cache cleared — version changed from"
+                     << (cachedVersion.isEmpty() ? QStringLiteral("(none)") : cachedVersion)
+                     << "to" << currentVersion;
+        }
+    }
+
+    // Ensure parent directory exists before writing the version marker.
+    QFileInfo versionFileInfo(versionFilePath);
+    QDir().mkpath(versionFileInfo.absolutePath());
+
+    if (versionFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        versionFile.write(currentVersion.toUtf8());
+        versionFile.close();
     }
 }
 
