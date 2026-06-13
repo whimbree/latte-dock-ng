@@ -2,6 +2,17 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.1.21] - 2026-06-13
+
+### Added
+- Automatic QML disk cache clearing on version change, preventing stale compiled QML from masking fixes after upgrades.
+
+### Fixed
+- Default background thickness in new docks now correctly defaults to 6% (was 10% due to stale template values).
+
+### Changed
+- Project license upgraded from GPL-2.0-or-later to GPL-3.0-or-later.
+
 ## [v1.1.20] - 2026-06-13
 
 ### Fixed
