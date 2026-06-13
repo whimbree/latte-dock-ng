@@ -1897,8 +1897,16 @@ void ContainmentInterface::onAppletAdded(Plasma::Applet *applet)
 
         if (initializing) {
             //! track applet destroyed flag
-            connect(applet, &Plasma::Applet::destroyedChanged, this, [&, currentAppletId](bool destroyed) {
+            connect(applet, &Plasma::Applet::destroyedChanged, this, [&, currentAppletId, applet](bool destroyed) {
                 Q_EMIT appletInScheduledDestructionChanged(currentAppletId, destroyed);
+                if (!destroyed && m_layoutManager) {
+                    // Undo: re-show the item that was hidden by the
+                    // context menu's early hideAppletItem.
+                    QMetaObject::invokeMethod(m_layoutManager,
+                                              "showAppletItem",
+                                              Qt::DirectConnection,
+                                              Q_ARG(QObject *, applet));
+                }
             });
 
             //! remove on applet destruction

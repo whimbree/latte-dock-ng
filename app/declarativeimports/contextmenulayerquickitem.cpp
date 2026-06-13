@@ -16,6 +16,9 @@
 #include <QLatin1String>
 #include <QIcon>
 
+// std
+#include <memory>
+
 // KDE
 #include <KAcceleratorManager>
 #include <KActionCollection>
@@ -468,6 +471,47 @@ void ContextMenuLayerQuickItem::addAppletActions(QMenu *desktopMenu, Plasma::App
     {
         QAction *closeApplet = applet->internalAction(QStringLiteral("remove"));
         if (closeApplet && closeApplet->isEnabled()) {
+            // Hide the applet container immediately so dock space is
+            // reclaimed, but do NOT destroy it — the user may undo via
+            // the Plasma notification.  Final cleanup happens when the
+            // applet is actually destroyed later.
+            QObject *layoutMgr = m_latteView->extendedInterface()->layoutManager();
+            connect(closeApplet, &QAction::triggered, this, [applet, layoutMgr]() mutable {
+                if (layoutMgr) {
+                    QMetaObject::invokeMethod(layoutMgr,
+                                              "hideAppletItem",
+                                              Qt::DirectConnection,
+                                              Q_ARG(QObject *, applet));
+                }
+                // Both connections clean each other up via the shared pointers.
+                auto undoConn = std::make_shared<QMetaObject::Connection>();
+                auto destroyConn = std::make_shared<QMetaObject::Connection>();
+
+                // Undo: Plasma emits destroyedChanged(false) when the user
+                // clicks the Undo notification.
+                *undoConn = QObject::connect(applet, &Plasma::Applet::destroyedChanged,
+                    [applet, layoutMgr, undoConn, destroyConn](bool destroyed) {
+                        if (!destroyed && layoutMgr) {
+                            QMetaObject::invokeMethod(layoutMgr,
+                                                      "showAppletItem",
+                                                      Qt::DirectConnection,
+                                                      Q_ARG(QObject *, applet));
+                        }
+                        QObject::disconnect(*undoConn);
+                        QObject::disconnect(*destroyConn);
+                    });
+
+                // Final destruction: notification dismissed or timed out.
+                *destroyConn = QObject::connect(applet, &QObject::destroyed,
+                    [applet, layoutMgr, undoConn, destroyConn]() {
+                        QMetaObject::invokeMethod(layoutMgr,
+                                                  "removeAppletItem",
+                                                  Qt::DirectConnection,
+                                                  Q_ARG(QObject *, applet));
+                        QObject::disconnect(*undoConn);
+                        QObject::disconnect(*destroyConn);
+                    });
+            });
             if (!desktopMenu->isEmpty()) {
                 desktopMenu->addSeparator();
             }

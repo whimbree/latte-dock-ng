@@ -2057,6 +2057,84 @@ void LayoutManager::removeAppletItem(QObject *applet)
     destroyAppletContainer(backendApplet);
 }
 
+void LayoutManager::hideAppletItem(QObject *applet)
+{
+    if (!applet || !m_startLayout || !m_mainLayout || !m_endLayout) {
+        return;
+    }
+
+    const int id = appletId(applet);
+    if (id <= 0) {
+        return;
+    }
+
+    // Search all three layouts for the item with the matching applet ID.
+    // Only hide it — do NOT deleteLater(), so the item survives if the
+    // user undoes the removal via the Plasma notification.
+    for (int i = 0; i <= 2; ++i) {
+        QQuickItem *layout = (i == 0 ? m_startLayout : (i == 1 ? m_mainLayout : m_endLayout));
+
+        for (int j = layout->childItems().count() - 1; j >= 0; --j) {
+            QQuickItem *item = layout->childItems()[j];
+            if (item->property("isInternalViewSplitter").toBool()) {
+                continue;
+            }
+
+            int itemAppletId = appletId(item->property("backendAppletRef").value<QObject *>());
+            if (itemAppletId <= 0) {
+                QVariant appletVariant = item->property("applet");
+                if (appletVariant.isValid()) {
+                    itemAppletId = appletId(appletVariant.value<QObject *>());
+                }
+            }
+
+            if (itemAppletId == id) {
+                item->setVisible(false);
+                save();
+                return;
+            }
+        }
+    }
+}
+
+void LayoutManager::showAppletItem(QObject *applet)
+{
+    if (!applet || !m_startLayout || !m_mainLayout || !m_endLayout) {
+        return;
+    }
+
+    const int id = appletId(applet);
+    if (id <= 0) {
+        return;
+    }
+
+    // Show the item that was previously hidden by hideAppletItem.
+    for (int i = 0; i <= 2; ++i) {
+        QQuickItem *layout = (i == 0 ? m_startLayout : (i == 1 ? m_mainLayout : m_endLayout));
+
+        for (int j = layout->childItems().count() - 1; j >= 0; --j) {
+            QQuickItem *item = layout->childItems()[j];
+            if (item->property("isInternalViewSplitter").toBool()) {
+                continue;
+            }
+
+            int itemAppletId = appletId(item->property("backendAppletRef").value<QObject *>());
+            if (itemAppletId <= 0) {
+                QVariant appletVariant = item->property("applet");
+                if (appletVariant.isValid()) {
+                    itemAppletId = appletId(appletVariant.value<QObject *>());
+                }
+            }
+
+            if (itemAppletId == id) {
+                item->setVisible(true);
+                save();
+                return;
+            }
+        }
+    }
+}
+
 void LayoutManager::destroyAppletContainer(QObject *applet)
 {
     if (!applet || !m_startLayout || !m_mainLayout || !m_endLayout) {

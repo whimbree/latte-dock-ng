@@ -745,7 +745,10 @@ ContainmentItem {
         runtimeAppletRepairTimer.schedule();
     }
 
-    Containment.onAppletRemoved: function(applet) { fastLayoutManager.removeAppletItem(applet); }
+    Containment.onAppletRemoved: function(applet) {
+        fastLayoutManager.removeAppletItem(applet);
+        runtimeAppletRepairTimer.schedule();
+    }
 
     Plasmoid.onImmutableChanged: {
         var action = configureAction();

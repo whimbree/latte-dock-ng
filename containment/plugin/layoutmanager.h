@@ -93,6 +93,8 @@ public Q_SLOTS:
     Q_INVOKABLE void addAppletItem(QObject *applet, int x, int y);
     Q_INVOKABLE void addAppletItem(QObject *applet, int index);
     Q_INVOKABLE void removeAppletItem(QObject *applet);
+    Q_INVOKABLE void hideAppletItem(QObject *applet);
+    Q_INVOKABLE void showAppletItem(QObject *applet);
 
     Q_INVOKABLE void addJustifySplittersInMainLayout();
     Q_INVOKABLE void moveAppletsBasedOnJustifyAlignment();
