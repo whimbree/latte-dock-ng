@@ -133,7 +133,7 @@ T &GenericTable<T>::operator[](const QString &id)
 }
 
 template <class T>
-const T GenericTable<T>::operator[](const QString &id) const
+T GenericTable<T>::operator[](const QString &id) const
 {
     int pos{-1};
 
@@ -154,7 +154,7 @@ T &GenericTable<T>::operator[](const uint &index)
 }
 
 template <class T>
-const T GenericTable<T>::operator[](const uint &index) const
+T GenericTable<T>::operator[](const uint &index) const
 {
     return m_list[index];
 }

@@ -19,7 +19,7 @@ Item {
     readonly property bool isThinTooltipEnabled: parabolicAreaLoader.isThinTooltipEnabled    
 
     property real length: root.isHorizontal ? appletItem.width : appletItem.height
-    property var lastMousePoint: { "x": 0, "y": 0 }
+    property point lastMousePoint: Qt.point(0, 0)
 
     MouseArea {
         id: parabolicMouseArea
@@ -54,8 +54,7 @@ Item {
     }
 
     onParabolicEntered: function(mouseX, mouseY) {
-        lastMousePoint.x = mouseX;
-        lastMousePoint.y = mouseY;
+        lastMousePoint = Qt.point(mouseX, mouseY);
 
         if (isThinTooltipEnabled && !(isSeparator || isSpacer || isMarginsAreaSeparator)) {
             appletItem.thinTooltip.show(appletItem.tooltipVisualParent, applet.title);
@@ -85,8 +84,7 @@ Item {
     }
 
     onParabolicMove: function(mouseX, mouseY) {
-        lastMousePoint.x = mouseX;
-        lastMousePoint.y = mouseY;
+        lastMousePoint = Qt.point(mouseX, mouseY);
 
         if (!appletItem.myView.isShownFully
                 || appletItem.originalAppletBehavior

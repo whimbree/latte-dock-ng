@@ -216,13 +216,13 @@ QtObject {
     // which races with the async PulseAudio server response.
     // An Instantiator is needed to drive the model query — a bare  property var
     // creates the model but never triggers the initial data fetch.
-    property var _sinkModelPrimer: Instantiator {
+    property Instantiator _sinkModelPrimer: Instantiator {
         model: SinkModel {}
         delegate: QtObject {}
     }
 
     // QtObject has no default property, hence adding the Instantiator to one explicitly.
-    property var instantiator: Instantiator {
+    property Instantiator instantiator: Instantiator {
         model: PulseObjectFilterModel {
             filters: [ { role: "VirtualStream", value: false } ]
             sourceModel: SinkInputModel {}

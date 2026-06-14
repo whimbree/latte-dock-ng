@@ -36,9 +36,9 @@ public:
     bool operator==(const GenericTable<T> &rhs) const;
     bool operator!=(const GenericTable<T> &rhs) const;
     T &operator[](const QString &id);
-    const T operator[](const QString &id) const;
+    T operator[](const QString &id) const;
     T &operator[](const uint &index);
-    const T operator[](const uint &index) const;
+    T operator[](const uint &index) const;
     operator QString() const;
 
     bool containsId(const QString &id) const;
