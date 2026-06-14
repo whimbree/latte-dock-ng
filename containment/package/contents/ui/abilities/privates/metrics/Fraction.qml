@@ -5,9 +5,13 @@
 
 import QtQuick 2.0
 
+import "../../../definition/metrics" as MetricsDef
+
 Item {
-    property real thicknessMargin: 0.06
-    property real lengthMargin: 0.06
-    property real lengthPadding: 0.06
-    property real lengthAppletPadding: 0.06
+    // Default visual-proportion values; overridden by MetricsPrivate bindings.
+    // See MetricsDef.Constants for the authoritative named values.
+    property real thicknessMargin: MetricsDef.Constants.kDefaultLengthPadding
+    property real lengthMargin: MetricsDef.Constants.kDefaultLengthPadding
+    property real lengthPadding: MetricsDef.Constants.kDefaultLengthPadding
+    property real lengthAppletPadding: MetricsDef.Constants.kDefaultLengthPadding
 }
