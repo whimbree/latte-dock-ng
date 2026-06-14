@@ -42,13 +42,13 @@ void Schemes::init()
 {
     updateDefaultScheme();
 
-    connect(this, &Schemes::colorSchemeChanged, this, [&](WindowId wid) {
+    connect(this, &Schemes::colorSchemeChanged, this, [this](WindowId wid) {
         if (wid == m_wm->activeWindow()) {
             Q_EMIT m_wm->activeWindowChanged(wid);
         }
     });
 
-    connect(m_wm, &AbstractWindowInterface::windowRemoved, this, [&](WindowId wid) {
+    connect(m_wm, &AbstractWindowInterface::windowRemoved, this, [this](WindowId wid) {
         m_windowScheme.remove(wid);
     });
 

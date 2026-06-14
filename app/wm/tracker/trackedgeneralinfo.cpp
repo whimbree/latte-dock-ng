@@ -24,7 +24,7 @@ TrackedGeneralInfo::TrackedGeneralInfo(Tracker::Windows *tracker)
 {
     m_lastActiveWindow = new LastActiveWindow(this);
 
-    connect(m_wm, &AbstractWindowInterface::currentActivityChanged, this, [&]() {
+    connect(m_wm, &AbstractWindowInterface::currentActivityChanged, this, [this]() {
         updateTrackingCurrentActivity();
     });
 

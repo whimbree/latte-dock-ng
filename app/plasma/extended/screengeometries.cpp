@@ -91,11 +91,11 @@ void ScreenGeometries::init()
         connect(m_corona, &Latte::Corona::availableScreenRectChangedFrom, this, &ScreenGeometries::availableScreenGeometryChangedFrom);
         connect(m_corona, &Latte::Corona::availableScreenRegionChangedFrom, this, &ScreenGeometries::availableScreenGeometryChangedFrom);
 
-        connect(m_corona->layoutsManager()->synchronizer(), &Latte::Layouts::Synchronizer::centralLayoutsChanged, this, [&]() {
+        connect(m_corona->layoutsManager()->synchronizer(), &Latte::Layouts::Synchronizer::centralLayoutsChanged, this, [this]() {
             m_publishTimer.start();
         });
 
-        connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [&]() {
+        connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [this]() {
             if (m_corona->universalSettings()->isAvailableGeometryBroadcastedToPlasma()) {
                 m_publishTimer.start();
             }

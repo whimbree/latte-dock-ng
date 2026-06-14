@@ -34,7 +34,7 @@ LastActiveWindow::LastActiveWindow(TrackedGeneralInfo *trackedInfo)
       m_windowsTracker(trackedInfo->wm()->windowsTracker()),
       m_wm(trackedInfo->wm())
 {
-    connect(m_wm->schemesTracker(), &Schemes::colorSchemeChanged, this, [&](WindowId wid) {
+    connect(m_wm->schemesTracker(), &Schemes::colorSchemeChanged, this, [this](WindowId wid) {
         if (wid == m_currentWinId) {
             updateColorScheme();
         }

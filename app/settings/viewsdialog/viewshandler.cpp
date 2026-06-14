@@ -170,7 +170,7 @@ void ViewsHandler::initViewTemplatesSubMenu()
         openTemplatesDirectory->setToolTip(i18n("Open templates directory"));
         openTemplatesDirectory->setIcon(QIcon::fromTheme("edit"));
 
-        connect(openTemplatesDirectory, &QAction::triggered, this, [&]() {
+        connect(openTemplatesDirectory, &QAction::triggered, this, [this]() {
             KIO::highlightInFileManager(QList<QUrl>({QUrl::fromLocalFile(QString(Latte::configPath() + "/latte/templates/Dock.view.latte"))}));
         });
     }
@@ -442,7 +442,7 @@ void ViewsHandler::importView()
 
     connect(importFileDialog, &QFileDialog::finished, importFileDialog, &QFileDialog::deleteLater);
 
-    connect(importFileDialog, &QFileDialog::fileSelected, this, [&](const QString & file) {
+    connect(importFileDialog, &QFileDialog::fileSelected, this, [this](const QString & file) {
         Data::Generic templatedata;
         templatedata.id = file;
         templatedata.name = QFileInfo(file).fileName();

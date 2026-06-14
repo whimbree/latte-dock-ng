@@ -148,7 +148,7 @@ View::View(Plasma::Corona *corona, QScreen *targetScreen)
         if (!m_visibility) {
             m_visibility = new ViewPart::VisibilityManager(this);
 
-            connect(m_visibility, &ViewPart::VisibilityManager::isHiddenChanged, this, [&]() {
+            connect(m_visibility, &ViewPart::VisibilityManager::isHiddenChanged, this, [this]() {
                 if (m_visibility->isHidden()) {
                     m_interface->deactivateApplets();
                 }
@@ -172,11 +172,11 @@ View::View(Plasma::Corona *corona, QScreen *targetScreen)
 
         connect(this->containment(), &Plasma::Applet::statusChanged, this, &View::statusChanged);
         connect(this->containment(), &Plasma::Containment::showAddWidgetsInterface, this, &View::showWidgetExplorer);
-        connect(this->containment(), &Plasma::Containment::userConfiguringChanged, this, [&]() {
+        connect(this->containment(), &Plasma::Containment::userConfiguringChanged, this, [this]() {
             Q_EMIT inEditModeChanged();
         });
 
-        connect(this->containment(), &Plasma::Containment::destroyedChanged, this, [&]() {
+        connect(this->containment(), &Plasma::Containment::destroyedChanged, this, [this]() {
             m_inDelete = containment()->destroyed();
         });
 
@@ -290,7 +290,7 @@ void View::init(Plasma::Containment *plasma_containment)
         m_corona->wm()->setViewExtraFlags(this, onFrontLayer, mode);
     });
 
-    connect(this, &View::alignmentChanged, this, [&](){
+    connect(this, &View::alignmentChanged, this, [this](){
         // inform neighbour vertical docks to adjust their positioning
         if (m_inDelete || formFactor() == Plasma::Types::Vertical) {
             return;
@@ -300,7 +300,7 @@ void View::init(Plasma::Containment *plasma_containment)
         Q_EMIT availableScreenRegionChangedFrom(this);
     });
 
-    connect(this, &View::maxLengthChanged, this, [&]() {
+    connect(this, &View::maxLengthChanged, this, [this]() {
         if (m_inDelete) {
             return;
         }
@@ -309,7 +309,7 @@ void View::init(Plasma::Containment *plasma_containment)
         Q_EMIT availableScreenRegionChangedFrom(this);
     });
 
-    connect(this, &View::offsetChanged, this, [&]() {
+    connect(this, &View::offsetChanged, this, [this]() {
         if (m_inDelete ) {
             return;
         }
@@ -318,10 +318,10 @@ void View::init(Plasma::Containment *plasma_containment)
         Q_EMIT availableScreenRegionChangedFrom(this);
     });
 
-    connect(this, &View::localGeometryChanged, this, [&]() {
+    connect(this, &View::localGeometryChanged, this, [this]() {
         updateAbsoluteGeometry();
     });
-    connect(this, &View::screenEdgeMarginEnabledChanged, this, [&]() {
+    connect(this, &View::screenEdgeMarginEnabledChanged, this, [this]() {
         updateAbsoluteGeometry();
     });
 
@@ -336,27 +336,27 @@ void View::init(Plasma::Containment *plasma_containment)
     connect(this, &View::onPrimaryChanged, this, &View::saveConfig);
     connect(this, &View::typeChanged, this, &View::saveConfig);
 
-    connect(this, &View::normalThicknessChanged, this, [&]() {
+    connect(this, &View::normalThicknessChanged, this, [this]() {
         Q_EMIT availableScreenRectChangedFrom(this);
     });
 
-    connect(m_effects, &ViewPart::Effects::innerShadowChanged, this, [&]() {
+    connect(m_effects, &ViewPart::Effects::innerShadowChanged, this, [this]() {
         Q_EMIT availableScreenRectChangedFrom(this);
     });
     connect(m_positioner, &ViewPart::Positioner::onHideWindowsForSlidingOut, this, &View::hideWindowsForSlidingOut);
     connect(m_positioner, &ViewPart::Positioner::screenGeometryChanged, this, &View::screenGeometryChanged);
-    connect(m_positioner, &ViewPart::Positioner::windowSizeChanged, this, [&]() {
+    connect(m_positioner, &ViewPart::Positioner::windowSizeChanged, this, [this]() {
         Q_EMIT availableScreenRectChangedFrom(this);
     });
 
     connect(m_interface, &ViewPart::ContainmentInterface::hasExpandedAppletChanged, this, &View::verticalUnityViewHasFocus);
 
     //! View sends this signal in order to avoid crashes from ViewPart::Indicator when the view is recreated
-    connect(m_corona->indicatorFactory(), &Latte::Indicator::Factory::indicatorChanged, this, [&](const QString &indicatorId) {
+    connect(m_corona->indicatorFactory(), &Latte::Indicator::Factory::indicatorChanged, this, [this](const QString &indicatorId) {
         Q_EMIT indicatorPluginChanged(indicatorId);
     });
 
-    connect(this, &View::indicatorPluginChanged, this, [&](const QString &indicatorId) {
+    connect(this, &View::indicatorPluginChanged, this, [this](const QString &indicatorId) {
         if (m_indicator && m_indicator->isCustomIndicator() && m_indicator->type() == indicatorId) {
             reloadSource();
         }
@@ -1213,7 +1213,7 @@ void View::setLayout(Layout::GenericLayout *layout)
         //! we try to catch up
         m_initLayoutTimer.setInterval(kInitLayoutIntervalMs);
         m_initLayoutTimer.setSingleShot(true);
-        connectionsLayout << connect(&m_initLayoutTimer, &QTimer::timeout, this, [&]() {
+        connectionsLayout << connect(&m_initLayoutTimer, &QTimer::timeout, this, [this]() {
             if (m_layout && m_visibility) {
                 setActivities(m_layout->appliedActivities());
                 qDebug() << "DOCK VIEW FROM LAYOUT ::: " << m_layout->name() << " - activities: " << m_activities;
@@ -1225,7 +1225,7 @@ void View::setLayout(Layout::GenericLayout *layout)
 
         Latte::Corona *latteCorona = qobject_cast<Latte::Corona *>(this->corona());
 
-        connectionsLayout << connect(latteCorona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [&]() {
+        connectionsLayout << connect(latteCorona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [this]() {
             if (m_layout && m_visibility) {
                 setActivities(m_layout->appliedActivities());
                 //! update activities in case KWin did its magic and assigned windows to faulty activities
@@ -1236,7 +1236,7 @@ void View::setLayout(Layout::GenericLayout *layout)
         });
 
         if (latteCorona->layoutsManager()->memoryUsage() == MemoryUsage::MultipleLayouts) {
-            connectionsLayout << connect(latteCorona->activitiesConsumer(), &KActivities::Consumer::activitiesChanged, this, [&]() {
+            connectionsLayout << connect(latteCorona->activitiesConsumer(), &KActivities::Consumer::activitiesChanged, this, [this]() {
                 if (m_layout && m_visibility) {
                     setActivities(m_layout->appliedActivities());
                     qDebug() << "DOCK VIEW FROM LAYOUT (runningActivitiesChanged) ::: " << m_layout->name()
@@ -1244,13 +1244,13 @@ void View::setLayout(Layout::GenericLayout *layout)
                 }
             });
 
-            connectionsLayout << connect(m_layout, &Layout::GenericLayout::activitiesChanged, this, [&]() {
+            connectionsLayout << connect(m_layout, &Layout::GenericLayout::activitiesChanged, this, [this]() {
                 if (m_layout) {
                     setActivities(m_layout->appliedActivities());
                 }
             });
 
-            connectionsLayout << connect(latteCorona->layoutsManager()->synchronizer(), &Layouts::Synchronizer::layoutsChanged, this, [&]() {
+            connectionsLayout << connect(latteCorona->layoutsManager()->synchronizer(), &Layouts::Synchronizer::layoutsChanged, this, [this]() {
                 if (m_layout) {
                     setActivities(m_layout->appliedActivities());
                 }
@@ -1265,20 +1265,20 @@ void View::setLayout(Layout::GenericLayout *layout)
             m_visibleHackTimer1.setSingleShot(true);
             m_visibleHackTimer2.setSingleShot(true);
 
-            connectionsLayout << connect(this, &QWindow::visibleChanged, this, [&]() {
+            connectionsLayout << connect(this, &QWindow::visibleChanged, this, [this]() {
                 if (m_layout && !inDelete() && !isVisible() && !m_positioner->inLayoutUnloading()) {
                     m_visibleHackTimer1.start();
                     m_visibleHackTimer2.start();
                 }
             });
 
-            connectionsLayout << connect(&m_visibleHackTimer1, &QTimer::timeout, this, [&]() {
+            connectionsLayout << connect(&m_visibleHackTimer1, &QTimer::timeout, this, [this]() {
                 applyActivitiesToWindows();
                 showHiddenViewFromActivityStopping();
                 Q_EMIT activitiesChanged();
             });
 
-            connectionsLayout << connect(&m_visibleHackTimer2, &QTimer::timeout, this, [&]() {
+            connectionsLayout << connect(&m_visibleHackTimer2, &QTimer::timeout, this, [this]() {
                 applyActivitiesToWindows();
                 showHiddenViewFromActivityStopping();
                 Q_EMIT activitiesChanged();

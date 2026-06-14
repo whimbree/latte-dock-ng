@@ -70,7 +70,7 @@ void Effects::init()
     connect(m_view, &Latte::View::configWindowGeometryChanged, this, &Effects::updateMask);
     connect(m_view, &Latte::View::layoutChanged, this, &Effects::onPopUpMarginChanged);
 
-    connect(&m_theme, &Plasma::Theme::themeChanged, this, [&]() {
+    connect(&m_theme, &Plasma::Theme::themeChanged, this, [this]() {
         updateBackgroundContrastValues();
         updateEffects();
     });

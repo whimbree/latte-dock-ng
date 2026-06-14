@@ -42,11 +42,11 @@ void ActionsHandler::init()
     connect(m_ui->buttonBox->button(QDialogButtonBox::Reset), &QPushButton::clicked, this, &ActionsHandler::reset);
     connect(m_ui->buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, &ActionsHandler::resetDefaults);
 
-    connect(m_ui->actionsSelector, &KActionSelector::added, this, [&]() {
+    connect(m_ui->actionsSelector, &KActionSelector::added, this, [this]() {
         updateButtonEnablement();
     });
 
-    connect(m_ui->actionsSelector, &KActionSelector::removed, this, [&]() {
+    connect(m_ui->actionsSelector, &KActionSelector::removed, this, [this]() {
         updateButtonEnablement();
     });
 }

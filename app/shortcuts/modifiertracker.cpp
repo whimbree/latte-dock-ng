@@ -35,7 +35,7 @@ void ModifierTracker::init()
 
     connect(&m_metaPressedTimer, &QTimer::timeout, this, &ModifierTracker::metaModifierPressed);
 
-    connect(&m_modifierKeyInfo, &KModifierKeyInfo::keyPressed, this, [&](Qt::Key key, bool state) {
+    connect(&m_modifierKeyInfo, &KModifierKeyInfo::keyPressed, this, [this](Qt::Key key, bool state) {
         Qt::Key nKey = normalizeKey(key);
         //! ignore modifiers that we do not take into account
         if (!modifierIsTracked(nKey)) {

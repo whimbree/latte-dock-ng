@@ -75,22 +75,22 @@ void TabPreferences::initUi()
         Q_EMIT dataChanged();
     });
 
-    connect(m_ui->autostartChkBox, &QCheckBox::toggled, this, [&]() {
+    connect(m_ui->autostartChkBox, &QCheckBox::toggled, this, [this]() {
         m_preferences.autostart = m_ui->autostartChkBox->isChecked();
         Q_EMIT dataChanged();
     });
 
-    connect(m_ui->badges3DStyleChkBox, &QCheckBox::toggled, this, [&]() {
+    connect(m_ui->badges3DStyleChkBox, &QCheckBox::toggled, this, [this]() {
         m_preferences.badgeStyle3D = m_ui->badges3DStyleChkBox->isChecked();
         Q_EMIT dataChanged();
     });
 
-    connect(m_ui->broadcastGeomChkBox, &QCheckBox::toggled, this, [&]() {
+    connect(m_ui->broadcastGeomChkBox, &QCheckBox::toggled, this, [this]() {
         m_preferences.isAvailableGeometryBroadcastedToPlasma = m_ui->broadcastGeomChkBox->isChecked();
         Q_EMIT dataChanged();
     });
 
-    connect(m_ui->infoWindowChkBox, &QCheckBox::toggled, this, [&]() {
+    connect(m_ui->infoWindowChkBox, &QCheckBox::toggled, this, [this]() {
         m_preferences.layoutsInformationWindow = m_ui->infoWindowChkBox->isChecked();
         Q_EMIT dataChanged();
     });

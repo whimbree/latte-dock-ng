@@ -66,7 +66,7 @@ VisibilityManager::VisibilityManager(PlasmaQuick::ContainmentView *view)
 
     connect(this, &VisibilityManager::isFloatingGapWindowEnabledChanged, this, &VisibilityManager::onIsFloatingGapWindowEnabledChanged);
 
-    connect(this, &VisibilityManager::mustBeShown, this, [&]() {
+    connect(this, &VisibilityManager::mustBeShown, this, [this]() {
         if (m_latteView && !m_latteView->isVisible()) {
             m_latteView->setVisible(true);
         }
@@ -79,13 +79,13 @@ VisibilityManager::VisibilityManager(PlasmaQuick::ContainmentView *view)
 
         //! Frame Extents
         connect(m_latteView, &Latte::View::headThicknessGapChanged, this, &VisibilityManager::onHeadThicknessChanged);
-        connect(m_latteView, &Latte::View::locationChanged, this, [&]() {
+        connect(m_latteView, &Latte::View::locationChanged, this, [this]() {
             //! Resend frame extents because their geometry has changed
             const bool forceUpdate{true};
             publishFrameExtents(forceUpdate);
         });
 
-        connect(m_latteView, &Latte::View::typeChanged, this, [&]() {
+        connect(m_latteView, &Latte::View::typeChanged, this, [this]() {
             if (m_latteView->inEditMode()) {
                 //! Resend frame extents because type has changed
                 const bool forceUpdate{true};
@@ -93,14 +93,14 @@ VisibilityManager::VisibilityManager(PlasmaQuick::ContainmentView *view)
             }
         });
 
-        connect(m_latteView, &Latte::View::forcedShown, this, [&]() {
+        connect(m_latteView, &Latte::View::forcedShown, this, [this]() {
             //! Resend frame extents to compositor otherwise because compositor cleared
             //! them with no reason when the user is closing an activity
             const bool forceUpdate{true};
             publishFrameExtents(forceUpdate);
         });
 
-        connect(this, &VisibilityManager::modeChanged, this, [&]() {
+        connect(this, &VisibilityManager::modeChanged, this, [this]() {
             Q_EMIT m_latteView->availableScreenRectChangedFrom(m_latteView);
         });
 
@@ -112,13 +112,13 @@ VisibilityManager::VisibilityManager(PlasmaQuick::ContainmentView *view)
     m_timerShow.setSingleShot(true);
     m_timerHide.setSingleShot(true);
 
-    connect(&m_timerShow, &QTimer::timeout, this, [&]() {
+    connect(&m_timerShow, &QTimer::timeout, this, [this]() {
         if (m_isHidden ||  m_isBelowLayer) {
             //   qDebug() << "must be shown";
             Q_EMIT mustBeShown();
         }
     });
-    connect(&m_timerHide, &QTimer::timeout, this, [&]() {
+    connect(&m_timerHide, &QTimer::timeout, this, [this]() {
         if (!hidingIsBlocked() && !m_isHidden && !m_isBelowLayer && !m_dragEnter) {
             if (m_isFloatingGapWindowEnabled) {
                 //! first check if mouse is inside the floating gap
@@ -132,11 +132,11 @@ VisibilityManager::VisibilityManager(PlasmaQuick::ContainmentView *view)
 
     m_timerPublishFrameExtents.setInterval(1500);
     m_timerPublishFrameExtents.setSingleShot(true);
-    connect(&m_timerPublishFrameExtents, &QTimer::timeout, this, [&]() { publishFrameExtents(); });
+    connect(&m_timerPublishFrameExtents, &QTimer::timeout, this, [this]() { publishFrameExtents(); });
 
     m_timerBlockStrutsUpdate.setInterval(1000);
     m_timerBlockStrutsUpdate.setSingleShot(true);
-    connect(&m_timerBlockStrutsUpdate, &QTimer::timeout, this, [&]() { updateStrutsBasedOnLayoutsAndActivities(); });
+    connect(&m_timerBlockStrutsUpdate, &QTimer::timeout, this, [this]() { updateStrutsBasedOnLayoutsAndActivities(); });
 
     restoreConfig();
 
@@ -239,12 +239,12 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
     initViewFlags();
 
     if (mode != Types::AlwaysVisible && mode != Types::WindowsGoBelow) {
-        m_connections[0] = connect(m_wm, &WindowSystem::AbstractWindowInterface::currentDesktopChanged, this, [&] {
+        m_connections[0] = connect(m_wm, &WindowSystem::AbstractWindowInterface::currentDesktopChanged, this, [this] {
             if (m_raiseOnDesktopChange) {
                 raiseViewTemporarily();
             }
         });
-        m_connections[1] = connect(m_wm, &WindowSystem::AbstractWindowInterface::currentActivityChanged, this, [&]() {
+        m_connections[1] = connect(m_wm, &WindowSystem::AbstractWindowInterface::currentActivityChanged, this, [this]() {
             if (m_raiseOnActivityChange) {
                 raiseViewTemporarily();
             } else {
@@ -268,7 +268,7 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
         // when dragging active window from a floating dock) ???
         m_connections[base+1] = connect(m_latteView, &Latte::View::absoluteGeometryChanged, this, &VisibilityManager::updateStrutsAfterTimer);
 
-        m_connections[base+2] = connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [&]() {
+        m_connections[base+2] = connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [this]() {
             if (m_corona && m_corona->layoutsManager()->memoryUsage() == MemoryUsage::MultipleLayouts) {
                 updateStrutsBasedOnLayoutsAndActivities(true);
             }
@@ -277,7 +277,7 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
         //! Recompute struts when screen geometry changes on multi-screen setups.
         m_connections[base+3] = connect(m_corona->screenPool(), &Latte::ScreenPool::screenGeometryChanged, this, &VisibilityManager::updateStrutsAfterTimer);
 
-        m_connections[base+4] = connect(m_latteView, &Latte::View::activitiesChanged, this, [&]() {
+        m_connections[base+4] = connect(m_latteView, &Latte::View::activitiesChanged, this, [this]() {
             updateStrutsBasedOnLayoutsAndActivities(true);
         });
 
@@ -286,7 +286,7 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
     }
 
     case Types::AutoHide: {
-        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [&]() {
+        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [this]() {
             raiseView(m_containsMouse);
         });
 
@@ -329,7 +329,7 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
         break;
 
     case Types::WindowsCanCover:
-        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [&]() {
+        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [this]() {
             raiseView(m_containsMouse);
         });
 
@@ -340,7 +340,7 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
         break;
 
     case Types::SidebarOnDemand:
-        m_connections[base] = connect(m_latteView, &Latte::View::inEditModeChanged, this, [&]() {
+        m_connections[base] = connect(m_latteView, &Latte::View::inEditModeChanged, this, [this]() {
             if (!m_latteView->inEditMode()) {
                 m_isRequestedShownSidebarOnDemand = false;
                 updateHiddenState();
@@ -352,13 +352,13 @@ void VisibilityManager::setMode(Latte::Types::Visibility mode)
         break;
 
     case Types::SidebarAutoHide:
-        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [&]() {
+        m_connections[base] = connect(this, &VisibilityManager::containsMouseChanged, this, [this]() {
             if (!m_latteView->inEditMode()) {
                 updateHiddenState();
             }
         });
         
-        m_connections[base+1] = connect(m_latteView, &Latte::View::inEditModeChanged, this, [&]() {
+        m_connections[base+1] = connect(m_latteView, &Latte::View::inEditModeChanged, this, [this]() {
             if (m_latteView->inEditMode() && !m_isHidden) {
                 updateHiddenState();
             }
@@ -1054,7 +1054,7 @@ void VisibilityManager::createEdgeGhostWindow()
             }
         });
 
-        connect(m_edgeGhostWindow, &ScreenEdgeGhostWindow::dragEntered, this, [&]() {
+        connect(m_edgeGhostWindow, &ScreenEdgeGhostWindow::dragEntered, this, [this]() {
             if (m_isHidden) {
                 Q_EMIT mustBeShown();
             }

@@ -17,7 +17,7 @@ namespace Latte {
 OriginalView::OriginalView(Plasma::Corona *corona, QScreen *targetScreen)
     : View(corona, targetScreen)
 {
-    connect(this, &View::containmentChanged, this, [&]() {
+    connect(this, &View::containmentChanged, this, [this]() {
         if (!this->containment()) {
             return;
         }

@@ -141,7 +141,7 @@ void SettingsDialog::initFileMenu()
 
 
     //! triggers
-    connect(quitAction, &QAction::triggered, this, [&]() {
+    connect(quitAction, &QAction::triggered, this, [this]() {
         bool accepted = saveChanges();
 
         if (accepted) {
@@ -269,7 +269,7 @@ void SettingsDialog::importFullConfiguration()
 
     connect(importFileDialog, &QFileDialog::finished, importFileDialog, &QFileDialog::deleteLater);
 
-    connect(importFileDialog, &QFileDialog::fileSelected, this, [&](const QString & file) {
+    connect(importFileDialog, &QFileDialog::fileSelected, this, [this](const QString & file) {
         Latte::Layouts::Importer::LatteFileVersion version = Latte::Layouts::Importer::fileVersion(file);
         qDebug() << "VERSION :::: " << version;
 
@@ -301,7 +301,7 @@ void SettingsDialog::importFullConfiguration()
                 m_corona->importFullConfiguration(file);
             });
 
-            connect(takeBackupBtn, &QPushButton::clicked, this, [&](bool check) {
+            connect(takeBackupBtn, &QPushButton::clicked, this, [this](bool check) {
                 exportFullConfiguration();
             });
 
@@ -335,7 +335,7 @@ void SettingsDialog::exportFullConfiguration()
 
     connect(exportFileDialog, &QFileDialog::finished, exportFileDialog, &QFileDialog::deleteLater);
 
-    connect(exportFileDialog, &QFileDialog::fileSelected, this, [&](const QString & file) {
+    connect(exportFileDialog, &QFileDialog::fileSelected, this, [this](const QString & file) {
         auto showExportConfigurationError = [this]() {
             showInlineMessage(i18n("Full configuration export <b>failed</b>..."),
                               KMessageWidget::Error,

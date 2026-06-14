@@ -59,11 +59,11 @@ void DetailsHandler::init()
     connect(m_ui->iconClearBtn, &QPushButton::pressed, this, &DetailsHandler::clearIcon);
 
     //! Options
-    connect(m_ui->popUpMarginSpinBox, qOverload<int>(&QSpinBox::valueChanged), this, [&](int i) {
+    connect(m_ui->popUpMarginSpinBox, qOverload<int>(&QSpinBox::valueChanged), this, [this](int i) {
         setPopUpMargin(i);
     });
 
-    connect(m_ui->inMenuChk, &QCheckBox::toggled, this, [&]() {
+    connect(m_ui->inMenuChk, &QCheckBox::toggled, this, [this]() {
         setIsShownInMenu(m_ui->inMenuChk->isChecked());
     });
 
@@ -79,7 +79,7 @@ void DetailsHandler::init()
     connect(m_ui->customSchemeCmb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &DetailsHandler::onCurrentSchemeIndexChanged);
 
     //! data were changed
-    connect(this, &DetailsHandler::dataChanged, this, [&]() {
+    connect(this, &DetailsHandler::dataChanged, this, [this]() {
         loadLayout(c_data);
     });
 }

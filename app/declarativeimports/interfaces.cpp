@@ -45,7 +45,7 @@ void Interfaces::setGlobalShortcuts(QObject *shortcuts)
     m_globalShortcuts = shortcuts;
 
     if (m_globalShortcuts) {
-        connect(m_globalShortcuts, &QObject::destroyed, this, [&]() {
+        connect(m_globalShortcuts, &QObject::destroyed, this, [this]() {
             setGlobalShortcuts(nullptr);
         });
     }
@@ -67,7 +67,7 @@ void Interfaces::setLayoutsManager(QObject *manager)
     m_layoutsManager = manager;
 
     if (m_layoutsManager) {
-        connect(m_layoutsManager, &QObject::destroyed, this, [&]() {
+        connect(m_layoutsManager, &QObject::destroyed, this, [this]() {
             setLayoutsManager(nullptr);
         });
     }
@@ -89,7 +89,7 @@ void Interfaces::setThemeExtended(QObject *theme)
     m_themeExtended = theme;
 
     if (m_themeExtended) {
-        connect(m_themeExtended, &QObject::destroyed, this, [&]() {
+        connect(m_themeExtended, &QObject::destroyed, this, [this]() {
             setThemeExtended(nullptr);
         });
     }
@@ -111,7 +111,7 @@ void Interfaces::setUniversalSettings(QObject *settings)
     m_universalSettings = settings;
 
     if (m_universalSettings) {
-        connect(m_universalSettings, &QObject::destroyed, this, [&]() {
+        connect(m_universalSettings, &QObject::destroyed, this, [this]() {
             setUniversalSettings(nullptr);
         });
     }
@@ -155,7 +155,7 @@ void Interfaces::setView(QObject *view)
     m_view = view;
 
     if (m_view) {
-        connect(m_view, &QObject::destroyed, this, [&]() {
+        connect(m_view, &QObject::destroyed, this, [this]() {
             setView(nullptr);
         });
     }

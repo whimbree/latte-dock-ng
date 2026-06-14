@@ -35,27 +35,27 @@ void ClonedView::initSync()
     connect(m_originalView, &View::containmentChanged, this, &View::groupIdChanged);
 
     //! Update Visibility From Original
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::modeChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::modeChanged, this, [this]() {
         visibility()->setMode(m_originalView->visibility()->mode());
     });
 
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::raiseOnDesktopChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::raiseOnDesktopChanged, this, [this]() {
         visibility()->setRaiseOnDesktop(m_originalView->visibility()->raiseOnDesktop());
     });
 
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::raiseOnActivityChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::raiseOnActivityChanged, this, [this]() {
         visibility()->setRaiseOnActivity(m_originalView->visibility()->raiseOnActivity());
     });
 
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::enableKWinEdgesChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::enableKWinEdgesChanged, this, [this]() {
         visibility()->setEnableKWinEdges(m_originalView->visibility()->enableKWinEdges());
     });
 
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::timerShowChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::timerShowChanged, this, [this]() {
         visibility()->setTimerShow(m_originalView->visibility()->timerShow());
     });
 
-    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::timerHideChanged, this, [&]() {
+    connect(m_originalView->visibility(), &Latte::ViewPart::VisibilityManager::timerHideChanged, this, [this]() {
         visibility()->setTimerHide(m_originalView->visibility()->timerHide());
     });
 
@@ -65,18 +65,18 @@ void ClonedView::initSync()
     connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::initializationCompleted, this, &ClonedView::updateAppletIdsHash);
     connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletsOrderChanged, this, &ClonedView::updateAppletIdsHash);
     connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletDataCreated, this, &ClonedView::updateAppletIdsHash);
-    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletCreated, this, [&](const QString &pluginId) {
+    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletCreated, this, [this](const QString &pluginId) {
         m_originalView->addApplet(pluginId, containment()->id());
     });
 
-    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletDropped, this, [&](QObject *data, int x, int y) {
+    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletDropped, this, [this](QObject *data, int x, int y) {
         m_originalView->addApplet(data, x, y, containment()->id());
     });
 
     //! When clone QML finishes initializing, re-sync all containment config
     //! from the original to ensure consistency (catch up on changes that
     //! arrived before the clone's m_configuration was available).
-    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::initializationCompleted, this, [&]() {
+    connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::initializationCompleted, this, [this]() {
         if (m_originalView && m_originalView->extendedInterface()) {
             m_originalView->extendedInterface()->emitContainmentConfigProperties();
         }

@@ -67,14 +67,14 @@ Windows::~Windows()
 
 void Windows::init()
 {
-    connect(m_wm, &AbstractWindowInterface::windowChanged, this, [&](WindowId wid) {
+    connect(m_wm, &AbstractWindowInterface::windowChanged, this, [this](WindowId wid) {
         m_windows[wid] = m_wm->requestInfo(wid);
         updateAllHints();
 
         Q_EMIT windowChanged(wid);
     });
 
-    connect(m_wm, &AbstractWindowInterface::windowRemoved, this, [&](WindowId wid) {
+    connect(m_wm, &AbstractWindowInterface::windowRemoved, this, [this](WindowId wid) {
         m_windows.remove(wid);
 
         //! application data
@@ -86,14 +86,14 @@ void Windows::init()
         Q_EMIT windowRemoved(wid);
     });
 
-    connect(m_wm, &AbstractWindowInterface::windowAdded, this, [&](WindowId wid) {
+    connect(m_wm, &AbstractWindowInterface::windowAdded, this, [this](WindowId wid) {
         if (!m_windows.contains(wid)) {
             m_windows.insert(wid, m_wm->requestInfo(wid));
         }
         updateAllHints();
     });
 
-    connect(m_wm, &AbstractWindowInterface::activeWindowChanged, this, [&](WindowId wid) {
+    connect(m_wm, &AbstractWindowInterface::activeWindowChanged, this, [this](WindowId wid) {
         //! for some reason this is needed in order to update properly activeness values
         //! when the active window changes the previous active windows should be also updated
         for (const auto view : m_views.keys()) {

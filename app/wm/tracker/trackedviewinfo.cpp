@@ -22,7 +22,7 @@ TrackedViewInfo::TrackedViewInfo(Tracker::Windows *tracker, Latte::View *view)
 {
     m_activities = m_view->activities();
 
-    connect(m_view, &Latte::View::activitiesChanged, this, [&]() {
+    connect(m_view, &Latte::View::activitiesChanged, this, [this]() {
         m_activities = m_view->activities();
         updateTrackingCurrentActivity();
     });

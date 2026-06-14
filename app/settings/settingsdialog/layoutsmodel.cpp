@@ -34,7 +34,7 @@ Layouts::Layouts(QObject *parent, Latte::Corona *corona)
 {
     initActivities();
 
-    connect(this, &Layouts::inMultipleModeChanged, this, [&]() {
+    connect(this, &Layouts::inMultipleModeChanged, this, [this]() {
         QVector<int> roles;
         roles << Qt::DisplayRole;
         roles << Qt::UserRole;

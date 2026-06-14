@@ -179,7 +179,7 @@ LayoutManager::LayoutManager(QObject *parent)
 
     m_hasRestoredAppletsTimer.setInterval(2000);
     m_hasRestoredAppletsTimer.setSingleShot(true);
-    connect(&m_hasRestoredAppletsTimer, &QTimer::timeout, this, [&]() {
+    connect(&m_hasRestoredAppletsTimer, &QTimer::timeout, this, [this]() {
         m_hasRestoredApplets = true;
         Q_EMIT hasRestoredAppletsChanged();
     });

@@ -20,7 +20,7 @@ TrackedLayoutInfo::TrackedLayoutInfo(Tracker::Windows *tracker, Latte::Layout::G
 {
     m_activities = m_layout->appliedActivities();
 
-    connect(m_layout, &Latte::Layout::GenericLayout::activitiesChanged, this, [&]() {
+    connect(m_layout, &Latte::Layout::GenericLayout::activitiesChanged, this, [this]() {
         m_activities = m_layout->appliedActivities();
         updateTrackingCurrentActivity();
     });

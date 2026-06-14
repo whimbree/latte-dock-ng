@@ -28,7 +28,7 @@ Parabolic::Parabolic(Latte::View *parent)
     //! the magnification effect from jittering between adjacent icons.
     m_parabolicItemNullifier.setInterval(80);
     m_parabolicItemNullifier.setSingleShot(true);
-    connect(&m_parabolicItemNullifier, &QTimer::timeout, this, [&]() {
+    connect(&m_parabolicItemNullifier, &QTimer::timeout, this, [this]() {
         setCurrentParabolicItem(nullptr);
     });
 

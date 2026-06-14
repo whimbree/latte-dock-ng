@@ -127,7 +127,7 @@ void Views::init()
     connect(m_view, &View::ViewsTableView::selectionsChanged, this, &Views::onSelectionsChanged);
     connect(m_view, &QObject::destroyed, this, &Views::storeColumnWidths);
 
-    connect(m_view->horizontalHeader(), &QObject::destroyed, this, [&]() {
+    connect(m_view->horizontalHeader(), &QObject::destroyed, this, [this]() {
         m_viewSortColumn = m_view->horizontalHeader()->sortIndicatorSection();
         m_viewSortOrder = m_view->horizontalHeader()->sortIndicatorOrder();
     });

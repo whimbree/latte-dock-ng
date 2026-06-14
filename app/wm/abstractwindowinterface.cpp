@@ -45,7 +45,7 @@ AbstractWindowInterface::AbstractWindowInterface(QObject *parent)
     m_windowWaitingTimer.setInterval(150);
     m_windowWaitingTimer.setSingleShot(true);
 
-    connect(&m_windowWaitingTimer, &QTimer::timeout, this, [&]() {
+    connect(&m_windowWaitingTimer, &QTimer::timeout, this, [this]() {
         WindowId wid = m_windowChangedWaiting;
         m_windowChangedWaiting = WindowId();
         Q_EMIT windowChanged(wid);
@@ -53,11 +53,11 @@ AbstractWindowInterface::AbstractWindowInterface(QObject *parent)
 
     connect(this, &AbstractWindowInterface::windowRemoved, this, &AbstractWindowInterface::windowRemovedSlot);
 
-    // connect(this, &AbstractWindowInterface::windowChanged, this, [&](WindowId wid) {
+    // connect(this, &AbstractWindowInterface::windowChanged, this, [this](WindowId wid) {
     //     qDebug() << "WINDOW CHANGED ::: " << wid;
     // });
 
-    connect(m_activities.data(), &KActivities::Consumer::currentActivityChanged, this, [&](const QString &id) {
+    connect(m_activities.data(), &KActivities::Consumer::currentActivityChanged, this, [this](const QString &id) {
         m_currentActivity = id;
         Q_EMIT currentActivityChanged();
     });

@@ -61,11 +61,11 @@ Positioner::Positioner(Latte::View *parent)
         /////
 
         m_screenSyncTimer.setInterval(qMax(m_corona->universalSettings()->screenTrackerInterval() - 500, 1000));
-        connect(m_corona->universalSettings(), &UniversalSettings::screenTrackerIntervalChanged, this, [&]() {
+        connect(m_corona->universalSettings(), &UniversalSettings::screenTrackerIntervalChanged, this, [this]() {
             m_screenSyncTimer.setInterval(qMax(m_corona->universalSettings()->screenTrackerInterval() - 500, 1000));
         });
 
-        connect(m_corona, &Latte::Corona::viewLocationChanged, this, [&]() {
+        connect(m_corona, &Latte::Corona::viewLocationChanged, this, [this]() {
             //! check if an edge has been freed for a primary dock
             //! from another screen
             if (m_view->onPrimary()) {
@@ -99,31 +99,31 @@ void Positioner::init()
 
     connect(m_view, &Latte::View::onPrimaryChanged, this, &Positioner::syncLatteViews);
 
-    connect(this, &Positioner::inSlideAnimationChanged, this, [&]() {
+    connect(this, &Positioner::inSlideAnimationChanged, this, [this]() {
         if (!inSlideAnimation()) {
             syncGeometry();
         }
     });
 
-    connect(this, &Positioner::isStickedOnTopEdgeChanged, this, [&]() {
+    connect(this, &Positioner::isStickedOnTopEdgeChanged, this, [this]() {
         if (m_view->formFactor() == Plasma::Types::Vertical) {
             syncGeometry();
         }
     });
 
-    connect(this, &Positioner::isStickedOnBottomEdgeChanged, this, [&]() {
+    connect(this, &Positioner::isStickedOnBottomEdgeChanged, this, [this]() {
         if (m_view->formFactor() == Plasma::Types::Vertical) {
             syncGeometry();
         }
     });
 
-    connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [&]() {
+    connect(m_corona->activitiesConsumer(), &KActivities::Consumer::currentActivityChanged, this, [this]() {
         if (m_view->formFactor() == Plasma::Types::Vertical && m_view->layout() && m_view->layout()->isCurrent()) {
             syncGeometry();
         }
     });
 
-    connect(this, &Positioner::slideOffsetChanged, this, [&]() {
+    connect(this, &Positioner::slideOffsetChanged, this, [this]() {
         updatePosition(m_lastAvailableScreenRect);
     });
 
@@ -136,28 +136,28 @@ void Positioner::init()
 
     connect(m_view, &Latte::View::maxThicknessChanged, this, &Positioner::syncGeometry);
 
-    connect(m_view, &Latte::View::offsetChanged, this, [&]() {
+    connect(m_view, &Latte::View::offsetChanged, this, [this]() {
         updatePosition(m_lastAvailableScreenRect);
     });
 
-    connect(m_view, &Latte::View::locationChanged, this, [&]() {
+    connect(m_view, &Latte::View::locationChanged, this, [this]() {
         updateFormFactor();
         syncGeometry();
     });
 
-    connect(m_view, &Latte::View::editThicknessChanged, this, [&]() {
+    connect(m_view, &Latte::View::editThicknessChanged, this, [this]() {
         updateCanvasGeometry(m_lastAvailableScreenRect);
     });
 
-    connect(m_view, &Latte::View::screenEdgeMarginEnabledChanged, this, [&]() {
+    connect(m_view, &Latte::View::screenEdgeMarginEnabledChanged, this, [this]() {
         syncGeometry();
     });
 
-    connect(m_view, &Latte::View::screenEdgeMarginChanged, this, [&]() {
+    connect(m_view, &Latte::View::screenEdgeMarginChanged, this, [this]() {
         syncGeometry();
     });
 
-    connect(m_view, &View::layoutChanged, this, [&]() {
+    connect(m_view, &View::layoutChanged, this, [this]() {
         if (m_nextLayoutName.isEmpty() && m_view->layout() && m_view->formFactor() == Plasma::Types::Vertical) {
             syncGeometry();
         }
@@ -885,7 +885,7 @@ void Positioner::initSignalingForLocationChangeSliding()
     connect(this, &Positioner::hidingForRelocationStarted, this, &Positioner::onHideWindowsForSlidingOut);
 
     //! SCREEN_EDGE
-    connect(m_view, &View::locationChanged, this, [&]() {
+    connect(m_view, &View::locationChanged, this, [this]() {
         if (m_nextScreenEdge != Plasma::Types::Floating) {
             bool isrelocationlastevent = isLastHidingRelocationEvent();
             immediateSyncGeometry();
@@ -901,7 +901,7 @@ void Positioner::initSignalingForLocationChangeSliding()
     });
 
     //! SCREEN
-    connect(m_view, &QQuickView::screenChanged, this, [&]() {
+    connect(m_view, &QQuickView::screenChanged, this, [this]() {
         if (!m_view || !m_nextScreen) {
             return;
         }
@@ -928,7 +928,7 @@ void Positioner::initSignalingForLocationChangeSliding()
     });
 
     //! LAYOUT
-    connect(m_view, &View::layoutChanged, this, [&]() {
+    connect(m_view, &View::layoutChanged, this, [this]() {
         if (!m_nextLayoutName.isEmpty() && m_view->layout()) {
             bool isrelocationlastevent = isLastHidingRelocationEvent();
             m_nextLayoutName = "";
@@ -943,7 +943,7 @@ void Positioner::initSignalingForLocationChangeSliding()
     });
 
     //! APPLY CHANGES
-    connect(this, &Positioner::hidingForRelocationFinished, this, [&]() {
+    connect(this, &Positioner::hidingForRelocationFinished, this, [this]() {
         //! must be called only if relocation is animated
         if (m_repositionIsAnimated) {
             m_repositionIsAnimated = false;

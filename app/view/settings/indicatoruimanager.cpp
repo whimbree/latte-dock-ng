@@ -179,7 +179,7 @@ void IndicatorUiManager::addIndicator()
 
     connect(fileDialog, &QFileDialog::finished, fileDialog, &QFileDialog::deleteLater);
 
-    connect(fileDialog, &QFileDialog::fileSelected, this, [&](const QString & file) {
+    connect(fileDialog, &QFileDialog::fileSelected, this, [this](const QString & file) {
         qDebug() << "Trying to import indicator file ::: " << file;
         m_primary->corona()->indicatorFactory()->importIndicatorFile(file);
     });

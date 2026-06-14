@@ -68,7 +68,7 @@ Layouts::Layouts(Settings::Handler::TabLayouts *parent)
 
     connect(m_model, &Model::Layouts::nameDuplicated, this, &Layouts::onNameDuplicatedFrom);
 
-    connect(m_headerView, &QObject::destroyed, this, [&]() {
+    connect(m_headerView, &QObject::destroyed, this, [this]() {
         m_viewSortColumn = m_headerView->sortIndicatorSection();
         m_viewSortOrder = m_headerView->sortIndicatorOrder();
     });
@@ -77,7 +77,7 @@ Layouts::Layouts(Settings::Handler::TabLayouts *parent)
     initLayouts();
 
     //! connect them after initialization of the view
-    connect(m_model, &Model::Layouts::inMultipleModeChanged, this, [&]() {
+    connect(m_model, &Model::Layouts::inMultipleModeChanged, this, [this]() {
         applyColumnWidths(true);
     });
 
@@ -150,7 +150,7 @@ void Layouts::initView()
 
     connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &Layouts::onCurrentRowChanged);
 
-    connect(m_view, &QObject::destroyed, this, [&]() {
+    connect(m_view, &QObject::destroyed, this, [this]() {
         storeColumnWidths(m_model->inMultipleMode());
     });
 }

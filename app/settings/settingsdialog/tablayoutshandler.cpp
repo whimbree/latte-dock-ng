@@ -292,7 +292,7 @@ void TabLayouts::initLayoutTemplatesSubMenu()
         openTemplatesDirectory->setToolTip(i18n("Open templates directory"));
         openTemplatesDirectory->setIcon(QIcon::fromTheme("edit"));
 
-        connect(openTemplatesDirectory, &QAction::triggered, this, [&]() {
+        connect(openTemplatesDirectory, &QAction::triggered, this, [this]() {
             KIO::highlightInFileManager(QList<QUrl>({QUrl::fromLocalFile(QString(Latte::configPath() + "/latte/templates/Dock.layout.latte"))}));
         });
     }
@@ -555,7 +555,7 @@ void TabLayouts::importLayout()
 
     connect(importFileDialog, &QFileDialog::finished, importFileDialog, &QFileDialog::deleteLater);
 
-    connect(importFileDialog, &QFileDialog::fileSelected, this, [&](const QString & file) {
+    connect(importFileDialog, &QFileDialog::fileSelected, this, [this](const QString & file) {
         Latte::Layouts::Importer::LatteFileVersion version = Latte::Layouts::Importer::fileVersion(file);
         qDebug() << "VERSION :::: " << version;
 
