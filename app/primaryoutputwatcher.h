@@ -20,6 +20,8 @@ class ConnectionThread;
 
 class QScreen;
 
+namespace Latte {
+
 class PrimaryOutputWatcher : public QObject
 {
     Q_OBJECT
@@ -45,5 +47,7 @@ private:
     KWayland::Client::Registry *m_registry = nullptr;
     QString m_primaryOutputWayland;
 };
+
+} // namespace Latte
 
 #endif // PRIMARYOUTPUTWATCHER_H

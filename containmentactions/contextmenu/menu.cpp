@@ -4,10 +4,11 @@
 */
 
 #include "menu.h"
+#include "layoutmenuitemwidget.h"
+using Latte::LayoutMenuItemWidget;
 
 // local
 #include "contextmenudata.h"
-#include "layoutmenuitemwidget.h"
 
 // Qt
 #include <QAction>

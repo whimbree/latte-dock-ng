@@ -18,6 +18,8 @@
 #include <Plasma/Containment>
 #include <Plasma/PluginLoader>
 
+namespace Latte {
+
 AlternativesHelper::AlternativesHelper(Plasma::Applet *applet, QObject *parent)
     : QObject(parent),
       m_applet(applet)
@@ -85,5 +87,7 @@ void AlternativesHelper::loadAlternative(const QString &plugin)
         }
     });
 }
+
+} // namespace Latte
 
 #include "moc_alternativeshelper.cpp"

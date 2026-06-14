@@ -946,7 +946,7 @@ void Corona::showAlternativesForApplet(Plasma::Applet *applet)
     qmlObj->setInitializationDelayed(true);
     qmlObj->setSource(QUrl::fromLocalFile(alternativesQML));
 
-    AlternativesHelper *helper = new AlternativesHelper(applet, qmlObj);
+    auto *helper = new Latte::AlternativesHelper(applet, qmlObj);
     qmlObj->rootContext()->setContextProperty(QStringLiteral("alternativesHelper"), helper);
 
     m_alternativesObjects << qmlObj;

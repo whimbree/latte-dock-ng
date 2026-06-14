@@ -17,8 +17,11 @@
 #include <QStyleOptionMenuItem>
 #include <QTextDocument>
 
+namespace Latte {
+namespace {
 const int ICONMARGIN = 1;
 const int MARGIN = 2;
+}
 
 LayoutMenuItemWidget::LayoutMenuItemWidget(QAction* action, QWidget *parent)
     : QWidget(parent),
@@ -115,4 +118,6 @@ void LayoutMenuItemWidget::paintEvent(QPaintEvent* e)
 
     painter.restore();
 }
+
+} // namespace Latte
 

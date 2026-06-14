@@ -15,9 +15,10 @@
 #include <KConfigGroup>
 #include <KSharedConfig>
 
+namespace Latte {
+
 class PrimaryOutputWatcher;
 
-namespace Latte {
 namespace PlasmaExtended {
 
 class ScreenPool: public QObject

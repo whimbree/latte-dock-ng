@@ -21,9 +21,9 @@
 #include <KConfigGroup>
 #include <KSharedConfig>
 
-class PrimaryOutputWatcher;
-
 namespace Latte {
+
+class PrimaryOutputWatcher;
 
 class ScreenPool : public QObject
 {

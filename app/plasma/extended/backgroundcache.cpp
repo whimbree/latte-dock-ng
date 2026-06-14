@@ -382,7 +382,7 @@ void BackgroundCache::updateImageCalculations(QString imageFile, Plasma::Types::
         }
 
         if (!m_hintsCache[imageFile].contains(location)) {
-            imageHints iHints;
+            ImageHints iHints;
             iHints.brightness = brightness; iHints.busy = areaBusy;
             m_hintsCache[imageFile].insert(location, iHints);
         } else {

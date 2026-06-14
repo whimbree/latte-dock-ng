@@ -20,15 +20,15 @@
 #include <KConfigGroup>
 #include <KSharedConfig>
 
-struct imageHints {
+namespace Latte {
+namespace PlasmaExtended {
+
+struct ImageHints {
     bool busy{false};
     float brightness{-1000};
 };
 
-typedef QHash<Plasma::Types::Location, imageHints> EdgesHash;
-
-namespace Latte {
-namespace PlasmaExtended {
+using EdgesHash = QHash<Plasma::Types::Location, ImageHints>;
 
 class BackgroundCache: public QObject
 {

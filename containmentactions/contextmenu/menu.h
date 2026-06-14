@@ -16,6 +16,9 @@
 class QAction;
 class QMenu;
 
+namespace Latte {
+namespace ContainmentActions {
+
 struct LayoutInfo {
     QString layoutName;
     bool isBackgroundFileIcon;
@@ -26,6 +29,12 @@ struct ViewData {
     bool isCloned{true};
     int clonesCount{0};
 };
+
+} // namespace ContainmentActions
+} // namespace Latte
+
+using Latte::ContainmentActions::LayoutInfo;
+using Latte::ContainmentActions::ViewData;
 
 class Menu : public Plasma::ContainmentActions
 {

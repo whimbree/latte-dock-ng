@@ -13,6 +13,8 @@
 // Plasma
 #include <Plasma/Applet>
 
+namespace Latte {
+
 class AlternativesHelper : public QObject
 {
     Q_OBJECT
@@ -33,5 +35,7 @@ public:
 private:
     Plasma::Applet *m_applet;
 };
+
+} // namespace Latte
 
 #endif

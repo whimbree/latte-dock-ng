@@ -14,6 +14,8 @@
 #include <QStyleOptionMenuItem>
 
 
+namespace Latte {
+
 class LayoutMenuItemWidget : public QWidget {
     Q_OBJECT
 
@@ -31,5 +33,7 @@ private:
     bool m_isBackgroundFile;
     QString m_iconName;
 };
+
+} // namespace Latte
 
 #endif

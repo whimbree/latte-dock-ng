@@ -69,6 +69,8 @@ private:
     QStringList m_pending;
 };
 
+namespace Latte {
+
 PrimaryOutputWatcher::PrimaryOutputWatcher(QObject *parent)
     : QObject(parent)
 {
@@ -157,5 +159,7 @@ QScreen *PrimaryOutputWatcher::primaryScreen() const
     }
     return screen;
 }
+
+} // namespace Latte
 
 #include "primaryoutputwatcher.moc"
