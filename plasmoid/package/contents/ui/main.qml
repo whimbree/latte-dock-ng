@@ -111,8 +111,8 @@ PlasmoidItem {
     //a small badgers record (id,value)
     //in order to track badgers when there are changes
     //in launcher reference from libtaskmanager
-    property variant badgers:[]
-    property variant launchersOnActivities: []
+    property var badgers:[]
+    property var launchersOnActivities: []
 
     //global plasmoid reference to the context menu
     property QtObject contextMenu: null

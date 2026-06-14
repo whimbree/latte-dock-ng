@@ -14,8 +14,10 @@
 #include "layouts/importer.h"
 #include "templates/templatesmanager.h"
 
-// C++
+// C
 #include <csignal>
+
+// C++
 #include <memory>
 
 // Qt
@@ -38,6 +40,7 @@
 // KDE
 #include <KLocalizedString>
 #include <KAboutData>
+#include <KCoreAddons/KSignalHandler>
 #include <KDBusService>
 #include <KQuickAddons/QtQuickSettings>
 #include <KWindowSystem>
@@ -285,6 +288,16 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    //! Follow Plasma 6 plasmashell's shutdown pattern (KSignalHandler +
+    //! KCrash::AutoRestart).  KSignalHandler uses signalfd on Linux, which
+    //! integrates properly with the Qt event loop — unlike raw sigaction(2)
+    //! that can race with Wayland compositor teardown during logout.
+    //!
+    //! Reference: plasma-workspace/shell/main.cpp (bug 470604)
+    KSignalHandler::self()->watchSignal(SIGTERM);
+    KSignalHandler::self()->watchSignal(SIGINT);
+    KSignalHandler::self()->watchSignal(SIGHUP);
+
     //! disable restore from session management
     //! based on spectacle solution at:
     //!   - https://bugs.kde.org/show_bug.cgi?id=430411
@@ -301,26 +314,41 @@ int main(int argc, char **argv)
     };
 
     auto disableSessionManagement = [&app, &markSessionEnding](QSessionManager &sm) {
+        // setRestartHint must be called synchronously inside the
+        // commitDataRequest handler.  Everything else is deferred to the
+        // main thread via invokeMethod to avoid corrupting QObject state
+        // from the session-management thread (triggered by Qt::DirectConnection).
         sm.setRestartHint(QSessionManager::RestartNever);
-        markSessionEnding();
+        QMetaObject::invokeMethod(&app, markSessionEnding, Qt::QueuedConnection);
     };
 
-    QObject::connect(&app, &QGuiApplication::commitDataRequest, disableSessionManagement);
-    QObject::connect(&app, &QGuiApplication::saveStateRequest, disableSessionManagement);
+    QObject::connect(KSignalHandler::self(), &KSignalHandler::signalReceived,
+                     &app, [&markSessionEnding](int signal) {
+        qInfo() << "Received signal" << signal << "; triggering clean shutdown.";
+        markSessionEnding();
+        QCoreApplication::quit();
+    });
 
-    // Wayland sessions may skip Qt session-manager callbacks.
-    // Poll ksmserver shutdown state and trigger the same fast path.
+    QObject::connect(&app, &QGuiApplication::commitDataRequest, &app, disableSessionManagement, Qt::DirectConnection);
+    QObject::connect(&app, &QGuiApplication::saveStateRequest, &app, disableSessionManagement, Qt::DirectConnection);
+
+    //! Wayland sessions may skip Qt session-manager callbacks entirely.
+    //! Proactively watch ksmserver state via both DBus signals and polling
+    //! to trigger the fast shutdown path before the compositor disappears.
     QTimer sessionShutdownPoll;
-    sessionShutdownPoll.setInterval(1000);
+    sessionShutdownPoll.setInterval(500);
     QObject::connect(&sessionShutdownPoll, &QTimer::timeout, [&app, &markSessionEnding]() {
         if (app.property("latte_session_ending").toBool()) {
             return;
         }
 
         if (isKdeSessionShuttingDown()) {
+            // Only flag the session as ending; do NOT call quit().
+            // ksmserver returns true during the "are you sure?" logout
+            // confirmation phase, and calling quit() here would kill
+            // latte-dock before the user confirms/cancels.
             markSessionEnding();
-            qInfo() << "KSMServer shutdown detected; requesting Latte exit.";
-            QCoreApplication::quit();
+            qInfo() << "KSMServer shutdown detected; session flagged as ending.";
         }
     });
     sessionShutdownPoll.start();
@@ -497,10 +525,19 @@ int main(int argc, char **argv)
         qInstallMessageHandler(noMessageOutput);
     }
 
-    Latte::Corona corona(defaultLayoutOnStartup, layoutNameOnStartup, addViewTemplateNameOnStartup, memoryUsage);
-    KDBusService service(KDBusService::Unique);
-
-    return app.exec();
+    int result;
+    {
+        Latte::Corona corona(defaultLayoutOnStartup, layoutNameOnStartup, addViewTemplateNameOnStartup, memoryUsage);
+        KDBusService service(KDBusService::Unique);
+        result = app.exec();
+    }
+    // Send deferred deletes posted by child destructors.
+    // sendPostedEvents() is NOT interrupted by quit(), unlike
+    // processEvents().  Loop to drain cascading deferred deletes.
+    for (int pass = 0; pass < 50; ++pass) {
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+    return result;
 }
 
 inline void prependEnvironmentPath(const char *envName, const QString &path)
@@ -682,6 +719,15 @@ inline bool isKdeSessionShuttingDown()
             && reply.arguments().first().toBool());
 }
 
+//! POSIX signal handler for SIGTERM/SIGINT/SIGHUP.
+//! Qt6 catches these signals and translates them to application events,
+//! but the default translation may not set session-ending flags early
+//! enough. This handler ensures the session-ending property is set
+//! immediately so the Corona fast-shutdown path activates.
+//!
+//! During system shutdown the Wayland compositor may disconnect before
+//! the Qt event loop processes the signal → quit translation.  Setting
+//! the session-ending marker on the signal handler side guarantees that
 inline void filterDebugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     if (msg.endsWith("QML Binding: Not restoring previous value because restoreMode has not been set.This behavior is deprecated.In Qt < 6.0 the default is Binding.RestoreBinding.In Qt >= 6.0 the default is Binding.RestoreBindingOrValue.")

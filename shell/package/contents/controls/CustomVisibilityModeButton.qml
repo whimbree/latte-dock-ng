@@ -48,7 +48,7 @@ LatteComponents.ComboBoxButton{
     readonly property int firstVisibilityMode:  modes[0].pluginId
     readonly property int lastVisibilityMode: modes[modes.length - 1].pluginId
 
-    property variant modes: []
+    property var modes: []
 
     signal viewRelevantVisibilityModeChanged();
 

@@ -36,7 +36,7 @@ PlasmaComponents.ScrollView {
     property var windows: []
     readonly property bool isWin: windows !== undefined
 
-    property variant icon
+    property var icon
     property url launcherUrl
     property bool isLauncher
     property bool isMinimizedParent

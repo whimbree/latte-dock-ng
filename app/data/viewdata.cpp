@@ -181,7 +181,7 @@ View::operator QString() const
 
     result += " : ";
     if (isCloned()) {
-        result += ("Cloned from:"+ isClonedFrom);
+        result += "Cloned from:" + QString::number(isClonedFrom);
     } else {
         result += "Original";
     }

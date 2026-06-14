@@ -145,31 +145,35 @@ Corona::Corona(bool defaultLayoutOnStartup, QString layoutNameOnStartUp, QString
 
 Corona::~Corona()
 {
-    /*m_inQuit = true;
-
-    //! BEGIN: Give the time to slide-out views when closing
-    m_layoutsManager->synchronizer()->hideAllViews();
-    m_viewSettingsFactory->deleteLater();
-
-    m_viewsScreenSyncTimer.stop();
-
-    if (m_layoutsManager->memoryUsage() == MemoryUsage::SingleLayout) {
-        cleanConfig();
+    // Tear down containments first — same pattern as Plasma's
+    // CoronaPrivate::~CoronaPrivate (takeAt before delete).
+    if (m_layoutsManager) {
+        m_layoutsManager->unload();
     }
 
-    qDebug() << "Latte Corona - unload: containments ...";
-    m_layoutsManager->unload();*/
+    // Detach all children from Corona so Qt's deleteChildren() (which
+    // runs in ~QObject) finds an empty list.  Qt deletes children in
+    // registration order, but LayoutsManager needs dependencies that
+    // were registered BEFORE it — they'd be deleted first and crash.
+    const QObjectList kids = children();
+    for (QObject *kid : kids) {
+        kid->setParent(nullptr);
+    }
 
-    m_plasmaGeometries->deleteLater();
-    m_wm->deleteLater();
-    m_dialogShadows->deleteLater();
-    m_globalShortcuts->deleteLater();
-    m_layoutsManager->deleteLater();
-    m_screenPool->deleteLater();
-    m_universalSettings->deleteLater();
-    m_plasmaScreenPool->deleteLater();
-    m_themeExtended->deleteLater();
-    m_indicatorFactory->deleteLater();
+    // Delete in dependency order: LayoutsManager uses most other
+    // Corona members in its destructor (memoryUsage, screenPool, wm).
+    delete m_layoutsManager;
+    delete m_templatesManager;
+    delete m_viewSettingsFactory;
+    delete m_indicatorFactory;
+    delete m_globalShortcuts;
+    delete m_dialogShadows;
+    delete m_wm;
+    delete m_plasmaGeometries;
+    delete m_themeExtended;
+    delete m_plasmaScreenPool;
+    delete m_screenPool;
+    delete m_universalSettings;
 
     disconnect(m_activitiesConsumer, &KActivities::Consumer::serviceStatusChanged, this, &Corona::load);
     delete m_activitiesConsumer;
@@ -177,11 +181,8 @@ Corona::~Corona()
     qDebug() << "Latte Corona - deleted...";
 
     if (!m_importFullConfigurationFile.isEmpty()) {
-        //!NOTE: Restart latte to import the new configuration
         const QString program = QString::fromLatin1(App::BINARYNAME);
         const QStringList arguments{QStringLiteral("--import-full"), m_importFullConfigurationFile};
-        qDebug() << "Executing Import Full Configuration command :" << program << arguments;
-
         QProcess::startDetached(program, arguments);
     }
 }
@@ -208,6 +209,16 @@ void Corona::onAboutToQuit()
 
     if (sessionEnding) {
         m_viewsScreenSyncTimer.stop();
+
+        // During system shutdown the Wayland compositor may disconnect at any
+        // moment, and open application windows may generate a flood of close
+        // events that the window tracker processes.  Proactively hide all
+        // views to decouple window tracking before the compositor goes away.
+        // This prevents the "unexpectedly stopped" notification from Plasma.
+        if (m_layoutsManager && m_layoutsManager->synchronizer()) {
+            m_layoutsManager->synchronizer()->hideAllViews();
+        }
+
         qDebug() << "Latte Corona - fast shutdown path for session logout.";
         return;
     }

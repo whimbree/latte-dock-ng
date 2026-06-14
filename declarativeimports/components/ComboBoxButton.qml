@@ -15,7 +15,6 @@ import org.kde.latte.components 1.0 as LatteComponents
 
 Rectangle {
     id: root
-    Kirigami.Theme.inherit: true
     color: "transparent"
 
     readonly property var theme: Kirigami.Theme
@@ -61,7 +60,6 @@ Rectangle {
 
     QQC2.Button {
         id: mainButton
-        Kirigami.Theme.inherit: true
         anchors.left: Qt.application.layoutDirection === Qt.RightToLeft ? undefined : parent.left
         anchors.right: Qt.application.layoutDirection === Qt.RightToLeft ? parent.right : undefined
         LayoutMirroring.enabled: false

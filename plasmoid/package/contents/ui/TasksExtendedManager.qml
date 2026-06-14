@@ -23,28 +23,28 @@ Item {
 
     /// Launchers that are playing an ADD or REMOVAL animation
     /// and their Startups/Windows should be aware of
-    property variant waitingLaunchers: []
+    property var waitingLaunchers: []
 
     //! Launchers that must be shown IMMEDIATELY after a window removal
     //! because they are already present from a present libtaskmanager state
-    property variant immediateLaunchers: []
+    property var immediateLaunchers: []
 
     //! New launchers in order to be moved in correct place:
     //! launcher, pos)
-    property variant launchersToBeMoved: []
+    property var launchersToBeMoved: []
 
     //! Launchers that are added from user actions. They can be used in order
     //! to provide addition animations properly
-    property variant launchersToBeAdded: []
+    property var launchersToBeAdded: []
 
     //! Launchers that are added from user actions. They can be used in order
     //! to provide removal animations properly
-    property variant launchersToBeRemoved: []
+    property var launchersToBeRemoved: []
 
     //! Tasks that change state (launcher,startup,window) and
     //! at the next state must look the same concerning the parabolic effect:
     //! (id, zoom)
-    property variant frozenTasks: []
+    property var frozenTasks: []
 
     readonly property int launchersInPausedStateCount: launchersToBeMovedCount + launchersToBeAddedCount + launchersToBeRemovedCount
 

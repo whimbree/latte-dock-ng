@@ -34,7 +34,7 @@ Item {
 
     //! Prediction History of the algorithm in order to track cases where the algorithm produces
     //! grows and shrinks endlessly
-    property variant history: []
+    property var history: []
 
     //! required elements
     property Item layouts

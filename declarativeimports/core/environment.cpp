@@ -30,13 +30,13 @@ Environment::Environment(QObject *parent)
         QIcon::setThemeName(initialTheme);
     }
 
+    // KF6: iconLoaderSettingsChanged is emitted whenever any icon setting
+    // changes (theme, size, effects).  Previously iconChanged(int) was also
+    // connected, but that signal fires once per icon group (Desktop, Toolbar,
+    // MainToolbar …) and during theme switches caused a flood of QML binding
+    // re-evaluations that could crash when Svg objects were being recreated.
     connect(KIconLoader::global(), &KIconLoader::iconLoaderSettingsChanged,
             this, &Environment::markIconThemeChanged);
-
-    connect(KIconLoader::global(), &KIconLoader::iconChanged,
-            this, [this](int) {
-                markIconThemeChanged();
-            });
 
     const QString kdeGlobalsFile = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/kdeglobals");
 
@@ -61,6 +61,9 @@ Environment::Environment(QObject *parent)
         connect(KDirWatch::self(), &KDirWatch::dirty, this, handleKdeGlobalsChange);
         connect(KDirWatch::self(), &KDirWatch::created, this, handleKdeGlobalsChange);
         connect(KDirWatch::self(), &KDirWatch::deleted, this, handleKdeGlobalsChange);
+
+    m_iconThemeChangedTimer.setSingleShot(true);
+    connect(&m_iconThemeChangedTimer, &QTimer::timeout, this, &Environment::emitIconThemeVersionChanged);
     }
 }
 
@@ -129,6 +132,17 @@ QString Environment::currentIconTheme() const
 }
 
 void Environment::markIconThemeChanged()
+{
+    // Debounce: rapid theme-change signals (e.g. from multiple icon groups
+    // during a Plasma global-theme switch) can cause QML binding storms
+    // that race with Svg object recreation.  Coalesce them into a single
+    // notification per event-loop iteration.
+    if (!m_iconThemeChangedTimer.isActive()) {
+        m_iconThemeChangedTimer.start(50);
+    }
+}
+
+void Environment::emitIconThemeVersionChanged()
 {
     ++m_iconThemeVersion;
     qDebug() << "Environment::iconThemeVersionChanged" << m_iconThemeVersion;

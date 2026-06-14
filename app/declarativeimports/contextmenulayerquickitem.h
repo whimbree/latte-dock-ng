@@ -71,7 +71,7 @@ private:
 
 
 private:
-    Plasma::Types::ItemStatus m_lastContainmentStatus;
+    Plasma::Types::ItemStatus m_lastContainmentStatus{Plasma::Types::UnknownStatus};
 
     QPointer<QMenu> m_contextMenu;
     QMetaMethod m_appletContainsMethod;

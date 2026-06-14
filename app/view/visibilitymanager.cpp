@@ -458,6 +458,13 @@ QRect VisibilityManager::acceptableStruts()
         calcs = QRect(x, m_latteView->y(), m_strutsThickness, m_latteView->height());
         break;
     }
+
+    case Plasma::Types::Floating:
+    case Plasma::Types::Desktop:
+    case Plasma::Types::FullScreen:
+    default:
+        // Struts only apply to edge-aligned panels.
+        break;
     }
 
     return calcs;

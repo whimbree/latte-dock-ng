@@ -762,7 +762,16 @@ QList<QObject *> LayoutManager::plasmoidApplets() const
             for (QObject *appletObject : directApplets) {
                 appendUnique(normalizeAppletObject(appletObject));
             }
-        } else if (appletsVariant.canConvert<QSequentialIterable>()) {
+        } else if (appletsVariant.canConvert<QVariantList>()) {
+            const QVariantList appletList = appletsVariant.toList();
+
+            for (const QVariant &entry : appletList) {
+                QObject *appletObject = entry.value<QObject *>();
+                appendUnique(normalizeAppletObject(appletObject));
+            }
+        }
+#if QT_VERSION < QT_VERSION_CHECK(6, 15, 0)
+        else if (appletsVariant.canConvert<QSequentialIterable>()) {
             const QSequentialIterable iterable = appletsVariant.value<QSequentialIterable>();
 
             for (const QVariant &entry : iterable) {
@@ -770,6 +779,7 @@ QList<QObject *> LayoutManager::plasmoidApplets() const
                 appendUnique(normalizeAppletObject(appletObject));
             }
         }
+#endif
     }
 
     if (!applets.isEmpty()) {
@@ -1135,9 +1145,9 @@ void LayoutManager::restoreOption(const char *option)
 {
     QList<int> applets = toIntList(readConfigValue(m_option[option], QString()).toString());
 
-    if (option == ISAPPLETLOCKEDOPTION) {
+    if (qstrcmp(option, ISAPPLETLOCKEDOPTION) == 0) {
         setLockedZoomApplets(applets);
-    } else if (option == ISCOLORINGBLOCKEDOPTION) {
+    } else if (qstrcmp(option, ISCOLORINGBLOCKEDOPTION) == 0) {
         setUserBlocksColorizingApplets(applets);
     }
 }

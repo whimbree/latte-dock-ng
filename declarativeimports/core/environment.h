@@ -11,6 +11,7 @@
 #include <QQmlEngine>
 #include <QJSEngine>
 #include <QString>
+#include <QTimer>
 #include <QVariant>
 
 
@@ -47,9 +48,14 @@ Q_SIGNALS:
     void shortDurationChanged();
     void iconThemeVersionChanged();
 
+private slots:
+    void emitIconThemeVersionChanged();
+
 private:
     void markIconThemeChanged();
     QString currentIconTheme() const;
+
+    QTimer m_iconThemeChangedTimer;
     uint m_iconThemeVersion{0};
 
 };

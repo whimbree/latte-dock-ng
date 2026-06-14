@@ -9,7 +9,6 @@ import org.kde.kirigami 2.0 as Kirigami
 
 QQC2.Switch {
     id: root
-    Kirigami.Theme.inherit: true
     Kirigami.Theme.colorSet: Kirigami.Theme.Window
 
     SystemPalette {

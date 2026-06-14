@@ -328,31 +328,35 @@ Latte::ImportExport::State Factory::importIndicatorFile(QString compressedFile)
         notification->sendEvent();
     };
 
-    KArchive *archive;
-
-    KZip *zipArchive = new KZip(compressedFile);
-    zipArchive->open(QIODevice::ReadOnly);
-
-    //! if the file isnt a zip archive
-    if (!zipArchive->isOpen()) {
-        delete zipArchive;
-
-        KTar *tarArchive = new KTar(compressedFile, QStringLiteral("application/x-tar"));
-        tarArchive->open(QIODevice::ReadOnly);
-
-        if (!tarArchive->isOpen()) {
-            delete tarArchive;
-            showNotificationError();
-            return Latte::ImportExport::FailedState;
-        } else {
-            archive = tarArchive;
-        }
-    } else {
-        archive = zipArchive;
-    }
-
     QTemporaryDir archiveTempDir;
-    archive->directory()->copyTo(archiveTempDir.path());
+    {
+        // RAII scope for archive extraction — KArchive is deleted once the
+        // temporary directory has been populated.
+        KArchive *archive = nullptr;
+
+        KZip *zipArchive = new KZip(compressedFile);
+        [[maybe_unused]] bool zipOpened = zipArchive->open(QIODevice::ReadOnly);
+
+        if (!zipArchive->isOpen()) {
+            delete zipArchive;
+
+            KTar *tarArchive = new KTar(compressedFile, QStringLiteral("application/x-tar"));
+            [[maybe_unused]] bool tarOpened = tarArchive->open(QIODevice::ReadOnly);
+
+            if (!tarArchive->isOpen()) {
+                delete tarArchive;
+                showNotificationError();
+                return Latte::ImportExport::FailedState;
+            }
+
+            archive = tarArchive;
+        } else {
+            archive = zipArchive;
+        }
+
+        archive->directory()->copyTo(archiveTempDir.path());
+        delete archive;
+    }
 
     //metadata file
     QString packagePath = archiveTempDir.path();
