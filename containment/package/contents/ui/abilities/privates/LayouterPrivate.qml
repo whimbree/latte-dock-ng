@@ -465,7 +465,14 @@ Item {
 
 
     function _updateSizeForAppletsInFill() {
-        if (inNormalFillCalculationsState) {
+        // Modern dock style uses a lightweight fill calculation that does not
+        // depend on animation state (icon size / zoom).  Allow it to run even
+        // when autosize keeps needBothAxis > 0, which would otherwise block
+        // fillWidth applets (e.g. digital clock) from ever receiving their
+        // slot size.  Still honour appletsInParentChange.
+        var canRun = inNormalFillCalculationsState
+                  || (root.isModernDockStyle && !appletsInParentChange);
+        if (canRun) {
             // console.log(" org.kde.latte -------------");
             // console.log(" org.kde.latte s1...");
             var noA = startLayout.fillApplets + mainLayout.fillApplets + endLayout.fillApplets;
