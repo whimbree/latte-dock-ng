@@ -313,11 +313,23 @@ int main(int argc, char **argv)
         }
     };
 
-    auto disableSessionManagement = [&app, &markSessionEnding](QSessionManager &sm) {
-        // setRestartHint must be called synchronously inside the
-        // commitDataRequest handler.  Everything else is deferred to the
-        // main thread via invokeMethod to avoid corrupting QObject state
-        // from the session-management thread (triggered by Qt::DirectConnection).
+    //! commitDataRequest is the definitive signal that the session IS ending
+    //! (the user has confirmed logout/shutdown).  We must call quit() here —
+    //! relying on SIGTERM alone is unreliable because ksmserver may send
+    //! commitDataRequest first and only SIGTERM after a timeout, which triggers
+    //! the "Wait 2 minutes or Cancel" dialog.
+    auto commitDataHandler = [&app, &markSessionEnding](QSessionManager &sm) {
+        sm.setRestartHint(QSessionManager::RestartNever);
+        // Defer to main thread: set session-ending flag and trigger quit.
+        QMetaObject::invokeMethod(&app, [&app, &markSessionEnding]() {
+            markSessionEnding();
+            QCoreApplication::quit();
+        }, Qt::QueuedConnection);
+    };
+
+    //! saveStateRequest may fire during session checkpointing (not just
+    //! logout), so it only sets the session-ending flag without quitting.
+    auto saveStateHandler = [&app, &markSessionEnding](QSessionManager &sm) {
         sm.setRestartHint(QSessionManager::RestartNever);
         QMetaObject::invokeMethod(&app, markSessionEnding, Qt::QueuedConnection);
     };
@@ -329,8 +341,8 @@ int main(int argc, char **argv)
         QCoreApplication::quit();
     });
 
-    QObject::connect(&app, &QGuiApplication::commitDataRequest, &app, disableSessionManagement, Qt::DirectConnection);
-    QObject::connect(&app, &QGuiApplication::saveStateRequest, &app, disableSessionManagement, Qt::DirectConnection);
+    QObject::connect(&app, &QGuiApplication::commitDataRequest, &app, commitDataHandler, Qt::DirectConnection);
+    QObject::connect(&app, &QGuiApplication::saveStateRequest, &app, saveStateHandler, Qt::DirectConnection);
 
     //! Wayland sessions may skip Qt session-manager callbacks entirely.
     //! Proactively watch ksmserver state via both DBus signals and polling
@@ -338,15 +350,25 @@ int main(int argc, char **argv)
     QTimer sessionShutdownPoll;
     sessionShutdownPoll.setInterval(500);
     QObject::connect(&sessionShutdownPoll, &QTimer::timeout, [&app, &markSessionEnding]() {
+        const bool shuttingDown = isKdeSessionShuttingDown();
+
         if (app.property("latte_session_ending").toBool()) {
+            if (!shuttingDown) {
+                // The flag was set during a previous logout confirmation
+                // phase that the user cancelled.  Clear it so the next
+                // actual logout attempt is detected properly.
+                app.setProperty("latte_session_ending", false);
+                qunsetenv("LATTE_SESSION_ENDING");
+            }
             return;
         }
 
-        if (isKdeSessionShuttingDown()) {
+        if (shuttingDown) {
             // Only flag the session as ending; do NOT call quit().
             // ksmserver returns true during the "are you sure?" logout
             // confirmation phase, and calling quit() here would kill
             // latte-dock before the user confirms/cancels.
+            // The actual quit() is triggered by commitDataRequest (above).
             markSessionEnding();
             qInfo() << "KSMServer shutdown detected; session flagged as ending.";
         }
