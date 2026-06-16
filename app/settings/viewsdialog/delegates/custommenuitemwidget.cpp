@@ -93,7 +93,7 @@ QSize CustomMenuItemWidget::minimumSizeHint() const
     return sizeHint();
 }
 
-void CustomMenuItemWidget::paintEvent(QPaintEvent* e)
+void CustomMenuItemWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
     painter.save();

@@ -457,10 +457,8 @@ void IconItem::updateColors()
         float total = 0.0f;
 
         for(int row=0; row<icon.height(); ++row) {
-            QRgb *line = (QRgb *)icon.scanLine(row);
-
             for(int col=0; col<icon.width(); ++col) {
-                QRgb pix = line[col];
+                QRgb pix = icon.pixel(col, row);
 
                 int r = qRed(pix);
                 int g = qGreen(pix);
