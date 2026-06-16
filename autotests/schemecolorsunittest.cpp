@@ -4,6 +4,7 @@
 */
 
 #include "schemecolors.h"
+#include "schemesmodel.h"
 #include "importer.h"
 
 #include <KConfigGroup>
@@ -17,7 +18,7 @@
 
 namespace {
 QString s_configPath;
-QString s_dataRoot;
+QStringList s_dataRoots;
 
 QString writeScheme(const QString &path, const QString &name)
 {
@@ -68,8 +69,26 @@ QString Importer::standardPath(QString subPath, bool localfirst)
 {
     Q_UNUSED(localfirst)
 
-    const QString path = s_dataRoot + QStringLiteral("/") + subPath;
-    return QFileInfo::exists(path) ? path : QString();
+    for (const QString &root : std::as_const(s_dataRoots)) {
+        const QString path = root + QStringLiteral("/") + subPath;
+        if (QFileInfo::exists(path)) {
+            return path;
+        }
+    }
+
+    return QString();
+}
+
+QStringList Importer::standardPathsFor(QString subPath, bool localfirst)
+{
+    Q_UNUSED(localfirst)
+
+    QStringList paths;
+    for (const QString &root : std::as_const(s_dataRoots)) {
+        paths << root + QStringLiteral("/") + subPath;
+    }
+
+    return paths;
 }
 }
 }
@@ -84,6 +103,7 @@ private Q_SLOTS:
     void possibleSchemeFileResolvesAutoAccentKdeglobals();
     void schemeColorsLoadsWindowManagerColors();
     void schemeColorsCanLoadPlasmaThemeColors();
+    void schemesModelListsSystemColorsFirstAndUniqueSchemeFiles();
 };
 
 void SchemeColorsUnitTest::schemeNameReadsConfigNameOrFallsBackToFileName()
@@ -108,7 +128,7 @@ void SchemeColorsUnitTest::possibleSchemeFileFindsExactAndSimplifiedNames()
 {
     QTemporaryDir dataRoot;
     QVERIFY(dataRoot.isValid());
-    s_dataRoot = dataRoot.path();
+    s_dataRoots = {dataRoot.path()};
 
     const QString exact = writeScheme(dataRoot.path() + QStringLiteral("/color-schemes/Exact.colors"), QStringLiteral("Exact"));
     QCOMPARE(Latte::WindowSystem::SchemeColors::possibleSchemeFile(exact), exact);
@@ -124,6 +144,7 @@ void SchemeColorsUnitTest::possibleSchemeFileResolvesAutoAccentKdeglobals()
     QTemporaryDir configRoot;
     QVERIFY(configRoot.isValid());
     s_configPath = configRoot.path();
+    s_dataRoots.clear();
 
     QFile kdeglobals(configRoot.path() + QStringLiteral("/kdeglobals"));
     QVERIFY(kdeglobals.open(QIODevice::WriteOnly | QIODevice::Truncate));
@@ -169,6 +190,41 @@ void SchemeColorsUnitTest::schemeColorsCanLoadPlasmaThemeColors()
     QCOMPARE(colors.textColor(), QColor(22, 23, 24));
     QCOMPARE(colors.inactiveBackgroundColor(), QColor(25, 26, 27));
     QCOMPARE(colors.inactiveTextColor(), QColor(28, 29, 30));
+}
+
+void SchemeColorsUnitTest::schemesModelListsSystemColorsFirstAndUniqueSchemeFiles()
+{
+    QTemporaryDir configRoot;
+    QTemporaryDir firstDataRoot;
+    QTemporaryDir secondDataRoot;
+    QVERIFY(configRoot.isValid());
+    QVERIFY(firstDataRoot.isValid());
+    QVERIFY(secondDataRoot.isValid());
+
+    s_configPath = configRoot.path();
+    s_dataRoots = {firstDataRoot.path(), secondDataRoot.path()};
+
+    const QString beta = writeScheme(firstDataRoot.path() + QStringLiteral("/color-schemes/Beta.colors"), QStringLiteral("Beta"));
+    const QString alpha = writeScheme(firstDataRoot.path() + QStringLiteral("/color-schemes/Alpha.colors"), QStringLiteral("Alpha"));
+    writeScheme(secondDataRoot.path() + QStringLiteral("/color-schemes/Alpha.colors"), QStringLiteral("Alpha Duplicate"));
+
+    Latte::Settings::Model::Schemes model;
+
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.data(model.index(0, 0), Latte::Settings::Model::Schemes::IDROLE).toString(), QStringLiteral("kdeglobals"));
+    QCOMPARE(model.data(model.index(0, 0), Qt::DisplayRole).toString(), QStringLiteral("System Colors"));
+
+    QCOMPARE(model.data(model.index(1, 0), Latte::Settings::Model::Schemes::NAMEROLE).toString(), QStringLiteral("Alpha"));
+    QCOMPARE(model.data(model.index(1, 0), Latte::Settings::Model::Schemes::IDROLE).toString(), alpha);
+    QCOMPARE(model.data(model.index(2, 0), Latte::Settings::Model::Schemes::NAMEROLE).toString(), QStringLiteral("Beta"));
+    QCOMPARE(model.data(model.index(2, 0), Latte::Settings::Model::Schemes::IDROLE).toString(), beta);
+
+    QCOMPARE(model.row(QString()), 0);
+    QCOMPARE(model.row(QStringLiteral("kdeglobals")), 0);
+    QCOMPARE(model.row(alpha), 1);
+    QCOMPARE(model.row(QStringLiteral("/missing/colors")), -1);
+    QCOMPARE(model.data(model.index(1, 0), Latte::Settings::Model::Schemes::TEXTCOLORROLE).value<QColor>(), QColor(4, 5, 6));
+    QVERIFY(!model.data(model.index(10, 0), Qt::DisplayRole).isValid());
 }
 
 QTEST_GUILESS_MAIN(SchemeColorsUnitTest)
