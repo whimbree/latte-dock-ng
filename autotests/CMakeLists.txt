@@ -252,6 +252,31 @@ target_link_libraries(layoutunittest
 
 add_test(NAME layoutunittest COMMAND layoutunittest)
 
+set(launcherunittest_SRCS
+    launcherunittest.cpp
+    ../app/layouts/syncedlaunchers.cpp
+)
+
+add_executable(launcherunittest EXCLUDE_FROM_ALL ${launcherunittest_SRCS})
+
+target_include_directories(launcherunittest PRIVATE
+    ${CMAKE_BINARY_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/layouts
+)
+
+target_link_libraries(launcherunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Quick
+    Qt6::Test
+    KF6::ConfigCore
+    Plasma::Plasma
+)
+
+add_test(NAME launcherunittest COMMAND launcherunittest)
+set_tests_properties(launcherunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 set(schemecolorsunittest_SRCS
     schemecolorsunittest.cpp
     ../app/settings/detailsdialog/schemesmodel.cpp

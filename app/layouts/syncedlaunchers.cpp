@@ -6,12 +6,9 @@
 #include "syncedlaunchers.h"
 
 // local
-#include "../lattecorona.h"
-#include "../layout/centrallayout.h"
-#include "../layouts/manager.h"
-#include "../layouts/synchronizer.h"
 
 // Qt
+#include <QMetaMethod>
 #include <QQuickItem>
 #include <utility>
 
@@ -26,7 +23,7 @@ namespace Layouts {
 SyncedLaunchers::SyncedLaunchers(QObject *parent)
     : QObject(parent)
 {
-    m_manager = qobject_cast<Layouts::Manager *>(parent);
+    Q_UNUSED(parent)
 }
 
 SyncedLaunchers::~SyncedLaunchers()
