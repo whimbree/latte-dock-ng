@@ -422,7 +422,7 @@ void Positioner::reconsiderScreen()
     qDebug() << "reconsiderScreen() ended...";
 }
 
-void Positioner::onScreenChanged(QScreen *scr)
+void Positioner::onScreenChanged(QScreen *)
 {
     m_screenSyncTimer.start();
 

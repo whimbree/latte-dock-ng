@@ -421,7 +421,7 @@ void PrimaryConfigView::showEvent(QShowEvent *ev)
     }
 }
 
-void PrimaryConfigView::hideEvent(QHideEvent *ev)
+void PrimaryConfigView::hideEvent(QHideEvent *)
 {
     if (!m_latteView) {
         return;

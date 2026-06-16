@@ -252,7 +252,7 @@ void WaylandInterface::initVirtualDesktopManagement(KWayland::Client::PlasmaVirt
     });
 }
 
-void WaylandInterface::addDesktop(const QString &id, quint32 position)
+void WaylandInterface::addDesktop(const QString &id, quint32)
 {
     if (m_desktops.contains(id)) {
         return;
@@ -606,12 +606,12 @@ void WaylandInterface::setActiveEdge(QWindow *view, bool active)
     }
 }
 
-void WaylandInterface::setFrameExtents(QWindow *view, const QMargins &extents)
+void WaylandInterface::setFrameExtents(QWindow *, const QMargins &)
 {
     //! do nothing until there is a wayland way to provide this
 }
 
-void WaylandInterface::setInputMask(QWindow *window, const QRect &rect)
+void WaylandInterface::setInputMask(QWindow *, const QRect &)
 {
     //! do nothins, QWindow::mask() is sufficient enough in order to define Window input mask
 }
@@ -813,7 +813,7 @@ void WaylandInterface::requestClose(WindowId wid)
 }
 
 
-void WaylandInterface::requestMoveWindow(WindowId wid, QPoint from)
+void WaylandInterface::requestMoveWindow(WindowId wid, QPoint)
 {
     WindowInfoWrap wInfo = requestInfo(wid);
 

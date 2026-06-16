@@ -28,6 +28,11 @@
 #define DEFAULTCOLORSCHEME "default.colors"
 #define REVERSEDCOLORSCHEME "reversed.colors"
 
+#if defined(Q_CC_CLANG)
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_CLANG("-Wcast-align")
+#endif
+
 namespace Latte {
 namespace PlasmaExtended {
 
@@ -529,6 +534,10 @@ void Theme::qmlRegisterTypes()
     qmlRegisterAnonymousType<Latte::PlasmaExtended::Theme>(App::QMLURI, 1);
     qmlRegisterAnonymousType<Latte::PlasmaExtended::PanelBackground>(App::QMLURI, 1);
 }
+
+#if defined(Q_CC_CLANG)
+QT_WARNING_POP
+#endif
 
 }
 }

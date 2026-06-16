@@ -771,13 +771,18 @@ QList<QObject *> LayoutManager::plasmoidApplets() const
             }
         }
 #if QT_VERSION < QT_VERSION_CHECK(6, 15, 0)
-        else if (appletsVariant.canConvert<QSequentialIterable>()) {
-            const QSequentialIterable iterable = appletsVariant.value<QSequentialIterable>();
+        else {
+            QT_WARNING_PUSH
+            QT_WARNING_DISABLE_DEPRECATED
+            if (appletsVariant.canConvert<QSequentialIterable>()) {
+                const QSequentialIterable iterable = appletsVariant.value<QSequentialIterable>();
 
-            for (const QVariant &entry : iterable) {
-                QObject *appletObject = entry.value<QObject *>();
-                appendUnique(normalizeAppletObject(appletObject));
+                for (const QVariant &entry : iterable) {
+                    QObject *appletObject = entry.value<QObject *>();
+                    appendUnique(normalizeAppletObject(appletObject));
+                }
             }
+            QT_WARNING_POP
         }
 #endif
     }
@@ -1162,7 +1167,7 @@ bool LayoutManager::isMasqueradedIndex(const int &x, const int &y)
     return (x==y && x<=MASQUERADEDINDEXTOPOINTBASE && y<=MASQUERADEDINDEXTOPOINTBASE);
 }
 
-int LayoutManager::masquearadedIndex(const int &x, const int &y)
+int LayoutManager::masquearadedIndex(const int &x, const int &)
 {
     return qAbs(x - MASQUERADEDINDEXTOPOINTBASE);
 }
@@ -1695,7 +1700,7 @@ void LayoutManager::requestAppletsDisabledColoring(const QList<int> &applets)
     setUserBlocksColorizingApplets(applets);
 }
 
-int LayoutManager::distanceFromTail(QQuickItem *layout, QPointF pos) const
+int LayoutManager::distanceFromTail(QQuickItem *, QPointF pos) const
 {
     return (int)qSqrt(qPow(pos.x() - 0, 2) + qPow(pos.y() - 0, 2));
 }

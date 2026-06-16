@@ -18,6 +18,11 @@
 
 #define BASELINESHADOWTHRESHOLD 5
 
+#if defined(Q_CC_CLANG)
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_CLANG("-Wcast-align")
+#endif
+
 namespace Latte {
 namespace PlasmaExtended {
 
@@ -688,6 +693,10 @@ void PanelBackground::update()
 
     backSvg->deleteLater();
 }
+
+#if defined(Q_CC_CLANG)
+QT_WARNING_POP
+#endif
 
 }
 }
