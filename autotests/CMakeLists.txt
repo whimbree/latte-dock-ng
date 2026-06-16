@@ -252,6 +252,31 @@ target_link_libraries(layoutunittest
 
 add_test(NAME layoutunittest COMMAND layoutunittest)
 
+set(schemecolorsunittest_SRCS
+    schemecolorsunittest.cpp
+    ../app/wm/schemecolors.cpp
+)
+
+add_executable(schemecolorsunittest EXCLUDE_FROM_ALL ${schemecolorsunittest_SRCS})
+
+target_include_directories(schemecolorsunittest PRIVATE
+    ${CMAKE_BINARY_DIR}/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/layouts
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/wm
+)
+
+target_link_libraries(schemecolorsunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    KF6::ConfigCore
+    KF6::ConfigGui
+    KF6::CoreAddons
+)
+
+add_test(NAME schemecolorsunittest COMMAND schemecolorsunittest)
+
 set(wmunittest_SRCS
     wmunittest.cpp
     ../app/wm/tasktools.cpp
