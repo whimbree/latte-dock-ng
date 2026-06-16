@@ -107,6 +107,67 @@ target_link_libraries(coreunittest
 add_test(NAME coreunittest COMMAND coreunittest)
 set_tests_properties(coreunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
+set(corecomponentstest_SRCS
+    corecomponentstest.cpp
+    ../app/apptypes.cpp
+    ../app/plasma/extended/screenpool.cpp
+    ../app/primaryoutputwatcher.cpp
+    ../app/screenpool.cpp
+    ../app/data/activitydata.cpp
+    ../app/data/appletdata.cpp
+    ../app/data/errordata.cpp
+    ../app/data/errorinformationdata.cpp
+    ../app/data/genericbasictable.cpp
+    ../app/data/genericdata.cpp
+    ../app/data/generictable.cpp
+    ../app/data/layoutdata.cpp
+    ../app/data/layoutcolordata.cpp
+    ../app/data/layouticondata.cpp
+    ../app/data/layoutstable.cpp
+    ../app/data/preferencesdata.cpp
+    ../app/data/screendata.cpp
+    ../app/data/uniqueidinfo.cpp
+    ../app/data/viewdata.cpp
+    ../app/data/viewstable.cpp
+    ../app/tools/commontools.cpp
+)
+
+ecm_add_qtwayland_client_protocol(corecomponentstest_SRCS
+    PROTOCOL ${PLASMA_WAYLAND_PROTOCOLS_DIR}/kde-primary-output-v1.xml
+    BASENAME kde-primary-output-v1
+)
+
+ecm_add_qtwayland_client_protocol(corecomponentstest_SRCS
+    PROTOCOL ${PLASMA_WAYLAND_PROTOCOLS_DIR}/kde-output-order-v1.xml
+    BASENAME kde-output-order-v1
+)
+
+add_executable(corecomponentstest EXCLUDE_FROM_ALL ${corecomponentstest_SRCS})
+
+target_include_directories(corecomponentstest PRIVATE
+    ${CMAKE_BINARY_DIR}/app
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/plasma/extended
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/tools
+)
+
+target_link_libraries(corecomponentstest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    KF6::ConfigCore
+    KF6::CoreAddons
+    KF6::I18n
+    Plasma::Plasma
+    ${LATTE_WAYLANDCLIENT_TARGET}
+    Wayland::Client
+)
+
+add_test(NAME corecomponentstest COMMAND corecomponentstest)
+set_tests_properties(corecomponentstest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 set(qmlsmoketest_SRCS
     qmlsmoketest.cpp
 )

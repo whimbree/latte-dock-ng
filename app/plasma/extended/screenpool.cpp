@@ -98,7 +98,7 @@ void ScreenPool::load()
 
 void ScreenPool::insertScreenMapping(int id, const QString &connector)
 {
-    if (id==0 || connector.startsWith(":")) {
+    if (id==0 || connector.isEmpty() || connector.startsWith(":")) {
         return;
     }
 

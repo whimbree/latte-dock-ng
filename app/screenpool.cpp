@@ -200,7 +200,7 @@ void ScreenPool::insertScreenMapping(const QString &connector)
     //there are case that the QScreen instead of the correct screen name
     //returns "0:0", this check prevents from breaking the screens database
     //from garbage ids
-    if (m_screensTable.containsName(connector) || connector.startsWith(":")) {
+    if (connector.isEmpty() || m_screensTable.containsName(connector) || connector.startsWith(":")) {
         return;
     }
 
