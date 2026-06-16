@@ -4,6 +4,7 @@
 */
 
 #include "apptypes.h"
+#include "plasma/extended/backgroundcache.h"
 #include "plasma/extended/screenpool.h"
 #include "primaryoutputwatcher.h"
 #include "screenpool.h"
@@ -13,6 +14,7 @@
 
 #include <QFile>
 #include <QGuiApplication>
+#include <QImage>
 #include <QScreen>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -50,6 +52,7 @@ private Q_SLOTS:
     void screenPoolAllocatesStableIdsAndRejectsInvalidConnectors();
     void screenPoolLoadsStoredConnectorsAndIgnoresInvalidIds();
     void plasmaExtendedScreenPoolRejectsInvalidConnectors();
+    void backgroundCacheHandlesBroadcastedSmallImagesAtEveryEdge();
 };
 
 void CoreComponentsTest::appTypesMatchOnlyKnownLatteApplicationIds()
@@ -157,6 +160,39 @@ void CoreComponentsTest::plasmaExtendedScreenPoolRejectsInvalidConnectors()
     QCOMPARE(pool.connector(2), QString());
     QCOMPARE(pool.connector(3), QStringLiteral("HDMI-A-1"));
     QCOMPARE(pool.id(QStringLiteral("HDMI-A-1")), 3);
+}
+
+void CoreComponentsTest::backgroundCacheHandlesBroadcastedSmallImagesAtEveryEdge()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    qputenv("XDG_CONFIG_HOME", dir.path().toUtf8());
+    qputenv("XDG_DATA_HOME", dir.path().toUtf8());
+
+    const QString imagePath = dir.path() + QStringLiteral("/small-wallpaper.png");
+    QImage image(QSize(8, 8), QImage::Format_ARGB32);
+    image.fill(QColor(240, 240, 240));
+    QVERIFY(image.save(imagePath));
+
+    auto *cache = Latte::PlasmaExtended::BackgroundCache::self();
+    QSignalSpy changedSpy(cache, &Latte::PlasmaExtended::BackgroundCache::backgroundChanged);
+    cache->setBackgroundFromBroadcast(QStringLiteral("activity-a"), QStringLiteral("screen-a"), imagePath);
+
+    QCOMPARE(cache->background(QStringLiteral("activity-a"), QStringLiteral("screen-a")), imagePath);
+    QVERIFY(changedSpy.count() >= 1);
+
+    const QList<Plasma::Types::Location> edges{
+        Plasma::Types::TopEdge,
+        Plasma::Types::BottomEdge,
+        Plasma::Types::LeftEdge,
+        Plasma::Types::RightEdge
+    };
+
+    for (const auto edge : edges) {
+        const float brightness = cache->brightnessFor(QStringLiteral("activity-a"), QStringLiteral("screen-a"), edge);
+        QVERIFY2(brightness >= 0.0f && brightness <= 255.0f, qPrintable(QString::number(brightness)));
+        QCOMPARE(cache->busyFor(QStringLiteral("activity-a"), QStringLiteral("screen-a"), edge), false);
+    }
 }
 
 QTEST_MAIN(CoreComponentsTest)

@@ -110,6 +110,7 @@ set_tests_properties(coreunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscr
 set(corecomponentstest_SRCS
     corecomponentstest.cpp
     ../app/apptypes.cpp
+    ../app/plasma/extended/backgroundcache.cpp
     ../app/plasma/extended/screenpool.cpp
     ../app/primaryoutputwatcher.cpp
     ../app/screenpool.cpp

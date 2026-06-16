@@ -238,10 +238,8 @@ float BackgroundCache::brightnessFromArea(QImage &image, int firstRow, int first
 
     if (image.format() != QImage::Format_Invalid) {
         for (int row = firstRow; row < endRow; ++row) {
-            QRgb *line = (QRgb *)image.scanLine(row);
-
             for (int col = firstColumn; col < endColumn ; ++col) {
-                QRgb pixelData = line[col];
+                QRgb pixelData = image.pixel(col, row);
                 float pixelBrightness = Latte::colorBrightness(pixelData);
 
                 areaBrightness = (areaBrightness == -1000) ? pixelBrightness : (areaBrightness + pixelBrightness);
@@ -310,20 +308,28 @@ void BackgroundCache::updateImageCalculations(QString imageFile, Plasma::Types::
         //! Iterating algorigthm
         int firstRow = 0; int firstColumn = 0; int endRow = 0; int endColumn = 0;
 
+        auto normalizedBrightness = [this, &image](int firstRow, int firstColumn, int endRow, int endColumn) {
+            firstRow = qBound(0, firstRow, image.height() - 1);
+            endRow = qBound(firstRow + 1, endRow, image.height());
+            firstColumn = qBound(0, firstColumn, image.width() - 1);
+            endColumn = qBound(firstColumn + 1, endColumn, image.width());
+            return brightnessFromArea(image, firstRow, firstColumn, endRow, endColumn);
+        };
+
         //! horizontal tiles calculations
         if (location == Plasma::Types::TopEdge) {
             firstRow = 0; endRow = tileThickness;
         } else if (location == Plasma::Types::BottomEdge) {
-            firstRow = image.height() - tileThickness - 1; endRow = image.height() - 1;
+            firstRow = image.height() - tileThickness; endRow = image.height();
         }
 
         if (!vertical) {
             for (int i=1; i<=tiles; ++i) {
                 float subFactor = static_cast<float>(i) * factor;
-                firstColumn = endColumn+1; endColumn = (subFactor*imageLength) - 1;
-                endColumn = qMin(endColumn, imageLength-1);
+                firstColumn = endColumn; endColumn = subFactor * imageLength;
+                endColumn = qMin(endColumn, imageLength);
 
-                int tempBrightness = brightnessFromArea(image, firstRow, firstColumn, endRow, endColumn);
+                int tempBrightness = normalizedBrightness(firstRow, firstColumn, endRow, endColumn);
                 qDebug() << " Tile considering horizontal << (" << firstColumn << "," << firstRow << ") - (" << endColumn << "," << endRow << "), subfactor: " << subFactor
                          << ", brightness: " << tempBrightness;
 
@@ -342,16 +348,16 @@ void BackgroundCache::updateImageCalculations(QString imageFile, Plasma::Types::
         if (location == Plasma::Types::LeftEdge) {
             firstColumn = 0; endColumn = tileThickness;
         } else if (location == Plasma::Types::RightEdge) {
-            firstColumn = image.width() - 1 - tileThickness; endColumn = image.width() - 1;
+            firstColumn = image.width() - tileThickness; endColumn = image.width();
         }
 
         if (vertical) {
             for (int i=1; i<=tiles; ++i) {
                 float subFactor = static_cast<float>(i) * factor;
-                firstRow = endRow+1; endRow = (subFactor*imageLength) - 1;
-                endRow = qMin(endRow, imageLength-1);
+                firstRow = endRow; endRow = subFactor * imageLength;
+                endRow = qMin(endRow, imageLength);
 
-                int tempBrightness = brightnessFromArea(image, firstRow, firstColumn, endRow, endColumn);
+                int tempBrightness = normalizedBrightness(firstRow, firstColumn, endRow, endColumn);
                 qDebug() << " Tile considering vertical << (" << firstColumn << "," << firstRow << ") - (" << endColumn << "," << endRow << "), subfactor: " << subFactor
                          << ", brightness: " << tempBrightness;
 
