@@ -607,3 +607,29 @@ target_link_libraries(contextmenuunittest
 
 add_test(NAME contextmenuunittest COMMAND contextmenuunittest)
 set_tests_properties(contextmenuunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+set(shortcutunittest_SRCS
+    shortcutunittest.cpp
+    ../app/shortcuts/modifiertracker.cpp
+    ../app/shortcuts/shortcutstracker.cpp
+    ../app/tools/commontools.cpp
+)
+
+add_executable(shortcutunittest EXCLUDE_FROM_ALL ${shortcutunittest_SRCS})
+
+target_include_directories(shortcutunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/shortcuts
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app
+)
+
+target_link_libraries(shortcutunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    KF6::ConfigCore
+    KF6::CoreAddons
+    KF6::GlobalAccel
+    KF6::GuiAddons
+)
+
+add_test(NAME shortcutunittest COMMAND shortcutunittest)
