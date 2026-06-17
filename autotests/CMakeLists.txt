@@ -531,3 +531,28 @@ target_link_libraries(interfacesunittest
 )
 
 add_test(NAME interfacesunittest COMMAND interfacesunittest)
+
+
+set(viewpartunittest_SRCS
+    viewpartunittest.cpp
+    ../app/view/tasksmodel.cpp
+    ../app/view/indicator/indicatorinfo.cpp
+)
+
+add_executable(viewpartunittest EXCLUDE_FROM_ALL ${viewpartunittest_SRCS})
+
+target_include_directories(viewpartunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/view
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/view/indicator
+)
+
+target_link_libraries(viewpartunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    ${LATTE_SVG_TARGET}
+    Plasma::Plasma
+    Plasma::PlasmaQuick
+)
+
+add_test(NAME viewpartunittest COMMAND viewpartunittest)

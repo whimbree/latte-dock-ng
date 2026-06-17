@@ -53,7 +53,7 @@ QHash<int, QByteArray> TasksModel::roleNames() const{
 
 void TasksModel::addTask(PlasmaQuick::AppletQuickItem *plasmoid)
 {
-    if (plasmoid && m_tasks.contains(plasmoid)) {
+    if (!plasmoid || m_tasks.contains(plasmoid)) {
         return;
     }
 
