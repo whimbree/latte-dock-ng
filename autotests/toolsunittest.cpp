@@ -27,6 +27,7 @@ private Q_SLOTS:
     void horizontalDockScreenEdgeCornerPolicy();
     void verticalDockExternalPanelAvoidancePolicy();
     void verticalDockExternalPanelGeometryKeepsScreenThicknessAxis();
+    void screenEdgePanelGeometryFollowsEachEdge();
     void dockFormFactorFollowsEdgeLocation();
 };
 
@@ -247,6 +248,28 @@ void ToolsUnitTest::verticalDockExternalPanelGeometryKeepsScreenThicknessAxis()
     QCOMPARE(topPanelGeometry, QRect(0, 0, 1000, 36));
     QCOMPARE(Latte::ViewPart::verticalDockExternalPanelGeometry(screenGeometry, QList<QRect>{topPanelGeometry}),
              QRect(0, 36, 1000, 764));
+}
+
+void ToolsUnitTest::screenEdgePanelGeometryFollowsEachEdge()
+{
+    const QRect screenGeometry(10, 20, 1000, 800);
+
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::TopEdge, 36),
+             QRect(10, 20, 1000, 36));
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::BottomEdge, 36),
+             QRect(10, 784, 1000, 36));
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::LeftEdge, 48),
+             QRect(10, 20, 48, 800));
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::RightEdge, 48),
+             QRect(962, 20, 48, 800));
+
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::TopEdge, 900),
+             QRect(10, 20, 1000, 800));
+    QCOMPARE(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::LeftEdge, 1200),
+             QRect(10, 20, 1000, 800));
+    QVERIFY(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::TopEdge, 0).isNull());
+    QVERIFY(Latte::ViewPart::screenEdgePanelGeometry(QRect(), Plasma::Types::TopEdge, 36).isNull());
+    QVERIFY(Latte::ViewPart::screenEdgePanelGeometry(screenGeometry, Plasma::Types::Desktop, 36).isNull());
 }
 
 void ToolsUnitTest::dockFormFactorFollowsEdgeLocation()
