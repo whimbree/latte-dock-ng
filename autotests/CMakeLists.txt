@@ -688,3 +688,86 @@ target_link_libraries(containmentlayoutunittest
 
 add_test(NAME containmentlayoutunittest COMMAND containmentlayoutunittest)
 set_tests_properties(containmentlayoutunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+
+set(pluginregistrationunittest_SRCS
+    pluginregistrationunittest.cpp
+    ../containment/plugin/lattecontainmentplugin.cpp
+    ../containment/plugin/layoutmanager.cpp
+    ../containment/plugin/types.h
+)
+
+add_executable(pluginregistrationunittest EXCLUDE_FROM_ALL ${pluginregistrationunittest_SRCS})
+
+target_include_directories(pluginregistrationunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../containment/plugin
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app
+    ${CMAKE_BINARY_DIR}/containment
+)
+
+target_link_libraries(pluginregistrationunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::Test
+    KF6::ConfigCore
+    Plasma::Plasma
+    Plasma::PlasmaQuick
+)
+
+add_test(NAME pluginregistrationunittest COMMAND pluginregistrationunittest)
+
+
+set(plasmaextendedunittest_SRCS
+    plasmaextendedunittest.cpp
+    ../app/plasma/extended/panelbackground.cpp
+    panelthemeshadowstub.cpp
+)
+
+add_executable(plasmaextendedunittest EXCLUDE_FROM_ALL ${plasmaextendedunittest_SRCS})
+
+target_include_directories(plasmaextendedunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/plasma/extended
+)
+
+target_link_libraries(plasmaextendedunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    ${LATTE_SVG_TARGET}
+    Plasma::Plasma
+)
+
+add_test(NAME plasmaextendedunittest COMMAND plasmaextendedunittest)
+
+
+
+set(taskspluginunittest_SRCS
+    taskspluginunittest.cpp
+    ../plasmoid/plugin/lattetasksplugin.cpp
+    ../plasmoid/plugin/contextmenuactionsbackend.cpp
+    ../plasmoid/plugin/types.h
+)
+
+add_executable(taskspluginunittest EXCLUDE_FROM_ALL ${taskspluginunittest_SRCS})
+
+target_include_directories(taskspluginunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../plasmoid/plugin
+)
+
+target_link_libraries(taskspluginunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Test
+    KF6::KIOCore
+    KF6::KIOGui
+    KF6::KIOWidgets
+    KF6::KIOFileWidgets
+    Plasma::ActivitiesStats
+    Plasma::PlasmaQuick
+)
+
+add_test(NAME taskspluginunittest COMMAND taskspluginunittest)
+
