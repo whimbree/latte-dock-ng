@@ -538,6 +538,8 @@ set(viewpartunittest_SRCS
     viewpartunittest.cpp
     ../app/view/tasksmodel.cpp
     ../app/view/indicator/indicatorinfo.cpp
+    ../app/view/indicator/indicatorresources.cpp
+    indicatoruipathstub.cpp
 )
 
 add_executable(viewpartunittest EXCLUDE_FROM_ALL ${viewpartunittest_SRCS})
@@ -552,6 +554,8 @@ target_link_libraries(viewpartunittest
     Qt6::Gui
     Qt6::Test
     ${LATTE_SVG_TARGET}
+    KF6::ConfigCore
+    KF6::ConfigGui
     Plasma::Plasma
     Plasma::PlasmaQuick
 )
@@ -580,3 +584,26 @@ target_link_libraries(panelshadowunittest
 
 add_test(NAME panelshadowunittest COMMAND panelshadowunittest)
 set_tests_properties(panelshadowunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+set(contextmenuunittest_SRCS
+    contextmenuunittest.cpp
+    ../containmentactions/contextmenu/layoutmenuitemwidget.cpp
+    ../app/settings/generic/generictools.cpp
+)
+
+add_executable(contextmenuunittest EXCLUDE_FROM_ALL ${contextmenuunittest_SRCS})
+
+target_include_directories(contextmenuunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../containmentactions/contextmenu
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/settings/generic
+)
+
+target_link_libraries(contextmenuunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    Qt6::Widgets
+)
+
+add_test(NAME contextmenuunittest COMMAND contextmenuunittest)
+set_tests_properties(contextmenuunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

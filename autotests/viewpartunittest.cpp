@@ -4,6 +4,7 @@
 */
 
 #include "indicatorinfo.h"
+#include "indicatorresources.h"
 #include "tasksmodel.h"
 
 #include <QSignalSpy>
@@ -17,6 +18,7 @@ private Q_SLOTS:
     void tasksModelIgnoresNullTasks();
     void tasksModelExposesTaskRoleOnlyForValidRows();
     void indicatorInfoEmitsOnlyWhenValuesChange();
+    void indicatorResourcesIgnoreRepeatedSvgPaths();
 };
 
 void ViewPartUnitTest::tasksModelIgnoresNullTasks()
@@ -109,6 +111,25 @@ void ViewPartUnitTest::indicatorInfoEmitsOnlyWhenValuesChange()
     QCOMPARE(maskThicknessSpy.count(), 1);
     QCOMPARE(lengthPaddingSpy.count(), 1);
     QCOMPARE(thicknessPaddingSpy.count(), 1);
+}
+
+void ViewPartUnitTest::indicatorResourcesIgnoreRepeatedSvgPaths()
+{
+    Latte::ViewPart::IndicatorPart::Resources resources(nullptr);
+    QSignalSpy svgsSpy(&resources, &Latte::ViewPart::IndicatorPart::Resources::svgsChanged);
+
+    const QStringList paths{QStringLiteral("widgets/panel-background")};
+    resources.setSvgImagePaths(paths);
+
+    QCOMPARE(resources.svgs().count(), 1);
+    QCOMPARE(svgsSpy.count(), 1);
+    QObject *firstSvg = resources.svgs().constFirst();
+
+    resources.setSvgImagePaths(paths);
+
+    QCOMPARE(resources.svgs().count(), 1);
+    QCOMPARE(resources.svgs().constFirst(), firstSvg);
+    QCOMPARE(svgsSpy.count(), 1);
 }
 
 QTEST_GUILESS_MAIN(ViewPartUnitTest)

@@ -38,6 +38,8 @@ void Resources::setSvgImagePaths(QStringList paths)
         return;
     }
 
+    m_svgImagePaths = paths;
+
     while (!m_svgs.isEmpty()) {
         auto svg = m_svgs[0];
         m_svgs.removeFirst();
