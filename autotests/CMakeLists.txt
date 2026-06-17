@@ -111,6 +111,7 @@ set(corecomponentstest_SRCS
     corecomponentstest.cpp
     ../app/apptypes.cpp
     ../app/plasma/extended/backgroundcache.cpp
+    ../app/plasma/extended/backgroundtracker.cpp
     ../app/plasma/extended/screenpool.cpp
     ../app/primaryoutputwatcher.cpp
     ../app/screenpool.cpp
@@ -556,3 +557,26 @@ target_link_libraries(viewpartunittest
 )
 
 add_test(NAME viewpartunittest COMMAND viewpartunittest)
+
+set(panelshadowunittest_SRCS
+    panelshadowunittest.cpp
+    ../app/view/panelshadows.cpp
+)
+
+add_executable(panelshadowunittest EXCLUDE_FROM_ALL ${panelshadowunittest_SRCS})
+
+target_include_directories(panelshadowunittest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../app/view
+)
+
+target_link_libraries(panelshadowunittest
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    ${LATTE_SVG_TARGET}
+    KF6::WindowSystem
+    Plasma::Plasma
+)
+
+add_test(NAME panelshadowunittest COMMAND panelshadowunittest)
+set_tests_properties(panelshadowunittest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

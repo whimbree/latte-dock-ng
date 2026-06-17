@@ -5,6 +5,7 @@
 
 #include "apptypes.h"
 #include "plasma/extended/backgroundcache.h"
+#include "plasma/extended/backgroundtracker.h"
 #include "plasma/extended/screenpool.h"
 #include "primaryoutputwatcher.h"
 #include "screenpool.h"
@@ -53,6 +54,7 @@ private Q_SLOTS:
     void screenPoolLoadsStoredConnectorsAndIgnoresInvalidIds();
     void plasmaExtendedScreenPoolRejectsInvalidConnectors();
     void backgroundCacheHandlesBroadcastedSmallImagesAtEveryEdge();
+    void backgroundTrackerEmitsOnlyForChangedHints();
 };
 
 void CoreComponentsTest::appTypesMatchOnlyKnownLatteApplicationIds()
@@ -193,6 +195,39 @@ void CoreComponentsTest::backgroundCacheHandlesBroadcastedSmallImagesAtEveryEdge
         QVERIFY2(brightness >= 0.0f && brightness <= 255.0f, qPrintable(QString::number(brightness)));
         QCOMPARE(cache->busyFor(QStringLiteral("activity-a"), QStringLiteral("screen-a"), edge), false);
     }
+}
+
+void CoreComponentsTest::backgroundTrackerEmitsOnlyForChangedHints()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    qputenv("XDG_CONFIG_HOME", dir.path().toUtf8());
+    qputenv("XDG_DATA_HOME", dir.path().toUtf8());
+
+    const QString imagePath = dir.path() + QStringLiteral("/stable-wallpaper.png");
+    QImage image(QSize(8, 8), QImage::Format_ARGB32);
+    image.fill(QColor(24, 24, 24));
+    QVERIFY(image.save(imagePath));
+
+    auto *cache = Latte::PlasmaExtended::BackgroundCache::self();
+    cache->setBackgroundFromBroadcast(QStringLiteral("activity-tracker"), QStringLiteral("screen-tracker"), imagePath);
+
+    Latte::BackgroundTracker tracker;
+    QSignalSpy brightnessSpy(&tracker, &Latte::BackgroundTracker::currentBrightnessChanged);
+    QSignalSpy busySpy(&tracker, &Latte::BackgroundTracker::isBusyChanged);
+
+    tracker.setActivity(QStringLiteral("activity-tracker"));
+    tracker.setScreenName(QStringLiteral("screen-tracker"));
+
+    QCOMPARE(brightnessSpy.count(), 1);
+    QCOMPARE(busySpy.count(), 0);
+    QVERIFY(tracker.currentBrightness() >= 0.0f);
+    QCOMPARE(tracker.isBusy(), false);
+
+    cache->setBackgroundFromBroadcast(QStringLiteral("activity-tracker"), QStringLiteral("screen-tracker"), imagePath);
+
+    QCOMPARE(brightnessSpy.count(), 1);
+    QCOMPARE(busySpy.count(), 0);
 }
 
 QTEST_MAIN(CoreComponentsTest)

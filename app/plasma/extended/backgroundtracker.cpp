@@ -97,11 +97,18 @@ void BackgroundTracker::update()
         return;
     }
 
-    m_brightness = PlasmaExtended::BackgroundCache::self()->brightnessFor(m_activity, m_screenName, m_location);
-    m_busy = PlasmaExtended::BackgroundCache::self()->busyFor(m_activity, m_screenName, m_location);
+    const float brightness = PlasmaExtended::BackgroundCache::self()->brightnessFor(m_activity, m_screenName, m_location);
+    const bool busy = PlasmaExtended::BackgroundCache::self()->busyFor(m_activity, m_screenName, m_location);
 
-    Q_EMIT currentBrightnessChanged();
-    Q_EMIT isBusyChanged();
+    if (m_brightness != brightness) {
+        m_brightness = brightness;
+        Q_EMIT currentBrightnessChanged();
+    }
+
+    if (m_busy != busy) {
+        m_busy = busy;
+        Q_EMIT isBusyChanged();
+    }
 }
 
 }
