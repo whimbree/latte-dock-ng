@@ -178,6 +178,7 @@ add_executable(qmlsmoketest EXCLUDE_FROM_ALL ${qmlsmoketest_SRCS})
 add_dependencies(qmlsmoketest lattecoreplugin)
 
 target_compile_definitions(qmlsmoketest PRIVATE
+    LATTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     LATTE_CORE_QMLDIR="${CMAKE_SOURCE_DIR}/declarativeimports/core/qmldir"
     LATTE_CORE_PLUGIN="$<TARGET_FILE:lattecoreplugin>"
 )

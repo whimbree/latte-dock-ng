@@ -78,6 +78,108 @@ PlasmaCore.ToolTipArea {
         return null;
     }
 
+    function pluginName() {
+        if (typeof Plasmoid !== "undefined" && Plasmoid.pluginName) {
+            return Plasmoid.pluginName;
+        }
+        return appletItem && appletItem.pluginName ? appletItem.pluginName : "";
+    }
+
+    function isVolumeApplet() {
+        return pluginName() === "org.kde.plasma.volume";
+    }
+
+    function isApplicationMenuApplet() {
+        var plugin = pluginName();
+        return plugin === "org.kde.plasma.kicker"
+                || plugin === "org.kde.plasma.kickoff"
+                || plugin === "org.kde.plasma.kickerdash"
+                || plugin === "org.kde.plasma.appmenu";
+    }
+
+    function representationMinimumWidth() {
+        return root.fullRepresentation ? root.fullRepresentation.Layout.minimumWidth : 0;
+    }
+
+    function representationMinimumHeight() {
+        return root.fullRepresentation ? root.fullRepresentation.Layout.minimumHeight : 0;
+    }
+
+    function representationPreferredWidth() {
+        if (root.fullRepresentation !== null) {
+            if (root.fullRepresentation.Layout.preferredWidth > 0) {
+                return root.fullRepresentation.Layout.preferredWidth;
+            } else if (root.fullRepresentation.implicitWidth > 0) {
+                return root.fullRepresentation.implicitWidth;
+            }
+        }
+        return Kirigami.Units.iconSizes.sizeForLabels * 35;
+    }
+
+    function representationPreferredHeight() {
+        if (root.fullRepresentation !== null) {
+            if (root.fullRepresentation.Layout.preferredHeight > 0) {
+                return root.fullRepresentation.Layout.preferredHeight;
+            } else if (root.fullRepresentation.implicitHeight > 0) {
+                return root.fullRepresentation.implicitHeight;
+            }
+        }
+        return Kirigami.Units.iconSizes.sizeForLabels * 25;
+    }
+
+    function popupMinimumWidth() {
+        var minimum = representationMinimumWidth();
+        if (isVolumeApplet()) {
+            minimum = Math.max(minimum, Kirigami.Units.gridUnit * 27);
+        }
+        return minimum;
+    }
+
+    function popupMenuMinimumHeight() {
+        var minimum = representationMinimumHeight();
+        var resizableMinimum = Kirigami.Units.gridUnit * 18;
+
+        if (minimum > 0) {
+            return Math.min(minimum, resizableMinimum);
+        }
+
+        return resizableMinimum;
+    }
+
+    function popupMinimumHeight() {
+        if (isApplicationMenuApplet()) {
+            return popupMenuMinimumHeight();
+        }
+
+        var minimum = representationMinimumHeight();
+        if (isVolumeApplet()) {
+            minimum = Math.max(minimum, Kirigami.Units.gridUnit * 27);
+        }
+        return minimum;
+    }
+
+    function popupPreferredWidth() {
+        return Math.max(popupMinimumWidth(), representationPreferredWidth());
+    }
+
+    function popupPreferredHeight() {
+        return Math.max(popupMinimumHeight(), representationPreferredHeight());
+    }
+
+    function popupMaximumWidth() {
+        if (isApplicationMenuApplet()) {
+            return Infinity;
+        }
+        return root.fullRepresentation ? root.fullRepresentation.Layout.maximumWidth : Infinity;
+    }
+
+    function popupMaximumHeight() {
+        if (isApplicationMenuApplet()) {
+            return Infinity;
+        }
+        return root.fullRepresentation ? root.fullRepresentation.Layout.maximumHeight : Infinity;
+    }
+
     function findAppletItem() {
         // Walk up the visual parent chain from CompactApplet's parent
         // (_wrapperContainer) through ItemWrapper, Flow, to AppletItem.
@@ -325,32 +427,14 @@ PlasmaCore.ToolTipArea {
             LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
             LayoutMirroring.childrenInherit: true
 
-            Layout.minimumWidth: root.fullRepresentation ? root.fullRepresentation.Layout.minimumWidth : 0
-            Layout.minimumHeight: root.fullRepresentation ? root.fullRepresentation.Layout.minimumHeight : 0
+            Layout.minimumWidth: root.popupMinimumWidth()
+            Layout.minimumHeight: root.popupMinimumHeight()
 
-            Layout.maximumWidth: root.fullRepresentation ? root.fullRepresentation.Layout.maximumWidth : Infinity
-            Layout.maximumHeight: root.fullRepresentation ? root.fullRepresentation.Layout.maximumHeight : Infinity
+            Layout.maximumWidth: root.popupMaximumWidth()
+            Layout.maximumHeight: root.popupMaximumHeight()
 
-            implicitWidth: {
-                if (root.fullRepresentation !== null) {
-                    if (root.fullRepresentation.Layout.preferredWidth > 0) {
-                        return root.fullRepresentation.Layout.preferredWidth;
-                    } else if (root.fullRepresentation.implicitWidth > 0) {
-                        return root.fullRepresentation.implicitWidth;
-                    }
-                }
-                return Kirigami.Units.iconSizes.sizeForLabels * 35;
-            }
-            implicitHeight: {
-                if (root.fullRepresentation !== null) {
-                    if (root.fullRepresentation.Layout.preferredHeight > 0) {
-                        return root.fullRepresentation.Layout.preferredHeight;
-                    } else if (root.fullRepresentation.implicitHeight > 0) {
-                        return root.fullRepresentation.implicitHeight;
-                    }
-                }
-                return Kirigami.Units.iconSizes.sizeForLabels * 25;
-            }
+            implicitWidth: root.popupPreferredWidth()
+            implicitHeight: root.popupPreferredHeight()
 
             onActiveFocusChanged: {
                 if (activeFocus && fullRepresentation) {

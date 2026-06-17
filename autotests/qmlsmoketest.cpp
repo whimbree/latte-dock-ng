@@ -17,6 +17,9 @@ class QmlSmokeTest : public QObject
 
 private Q_SLOTS:
     void latteCoreQmlPluginLoadsFromBuildTree();
+    void pulseAudioBootstrapIsBounded();
+    void compactAppletUsesLargerDefaultForVolumePopup();
+    void compactAppletKeepsApplicationMenuPopupResizable();
 };
 
 void QmlSmokeTest::latteCoreQmlPluginLoadsFromBuildTree()
@@ -58,6 +61,42 @@ QtObject {
     QVERIFY(object->property("brightness").toReal() > 0.99);
     QCOMPARE(object->property("lumina").toReal(), 0.0);
     QCOMPARE(object->property("hasCompositingProperty").toBool(), true);
+}
+
+void QmlSmokeTest::pulseAudioBootstrapIsBounded()
+{
+    QFile pulseAudio(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/PulseAudio.qml"));
+    QVERIFY(pulseAudio.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(pulseAudio.readAll());
+    QVERIFY(source.contains(QStringLiteral("bootstrapAttempts")));
+    QVERIFY(source.contains(QStringLiteral("paFixTimer.stop()")));
+    QVERIFY(!source.contains(QStringLiteral("interval = 30000")));
+}
+
+void QmlSmokeTest::compactAppletUsesLargerDefaultForVolumePopup()
+{
+    QFile compactApplet(QStringLiteral(LATTE_SOURCE_DIR "/shell/package/contents/applet/CompactApplet.qml"));
+    QVERIFY(compactApplet.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(compactApplet.readAll());
+    QVERIFY(source.contains(QStringLiteral("function popupPreferredWidth")));
+    QVERIFY(source.contains(QStringLiteral("function popupPreferredHeight")));
+    QVERIFY(source.contains(QStringLiteral("org.kde.plasma.volume")));
+}
+
+void QmlSmokeTest::compactAppletKeepsApplicationMenuPopupResizable()
+{
+    QFile compactApplet(QStringLiteral(LATTE_SOURCE_DIR "/shell/package/contents/applet/CompactApplet.qml"));
+    QVERIFY(compactApplet.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(compactApplet.readAll());
+    QVERIFY(source.contains(QStringLiteral("function popupMenuMinimumHeight")));
+    QVERIFY(source.contains(QStringLiteral("function popupMaximumWidth")));
+    QVERIFY(source.contains(QStringLiteral("function popupMaximumHeight")));
+    QVERIFY(source.contains(QStringLiteral("org.kde.plasma.kicker")));
+    QVERIFY(source.contains(QStringLiteral("isApplicationMenuApplet()")));
+    QVERIFY(source.contains(QStringLiteral("return Infinity;")));
 }
 
 QTEST_MAIN(QmlSmokeTest)

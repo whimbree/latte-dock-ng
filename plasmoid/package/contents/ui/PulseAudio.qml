@@ -19,6 +19,8 @@ QtObject {
     property int maxVolumePercent: 125
     property int maxVolumeValue: Math.round(maxVolumePercent * PulseAudio.NormalVolume / 100.0)
     property int volumeStep: Math.round(5 * PulseAudio.NormalVolume / 100.0)
+    property int bootstrapAttempts: 0
+    readonly property int bootstrapMaxAttempts: 5
 
     function boundVolume(volume) {
         return Math.max(PulseAudio.MinimalVolume, Math.min(volume, maxVolumeValue));
@@ -273,6 +275,7 @@ QtObject {
 
     Component.onCompleted: {
         console.log("PulseAudio Latte interface was loaded...");
+        bootstrapAttempts = 0;
         paFixTimer.start();
     }
 
@@ -283,22 +286,29 @@ QtObject {
     // signal never fires and PreferredDevice.sink stays null forever, causing
     // the volume applet to show a muted icon.
     //
-    // We wait a few seconds for the PulseAudio context to be warm, then emit
-    // defaultSinkChanged on the Server singleton to force PreferredDevice
+    // We wait briefly for the PulseAudio context to be warm, then emit
+    // defaultSinkChanged once on the Server singleton to force PreferredDevice
     // to call updatePreferredSink() and read the initial sink state.
     property Timer paFixTimer: Timer {
-        interval: 3000
+        interval: 1000
         repeat: true
         running: false
         onTriggered: {
+            bootstrapAttempts++;
+
             try {
                 var ds = Server.defaultSink
                 if (ds && PreferredDevice) {
                     Server.defaultSinkChanged(ds)
-                    interval = 30000 // back off to 30 s for low-overhead safety net
+                    paFixTimer.stop()
+                    return;
                 }
             } catch (e) {
                 // Server/PreferredDevice not registered in this module version
+            }
+
+            if (bootstrapAttempts >= bootstrapMaxAttempts) {
+                paFixTimer.stop();
             }
         }
     }
