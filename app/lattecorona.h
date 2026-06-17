@@ -157,6 +157,10 @@ public Q_SLOTS:
     void activateLauncherMenu();
     void loadDefaultLayout() override;
 
+    bool hasLauncher(QString launcherUrl, QString screenName);
+    bool addLauncher(QString launcherUrl, QString screenName);
+    bool removeLauncher(QString launcherUrl, QString screenName);
+
     void setAutostart(const bool &enabled);
 
     void addView(const uint &containmentId, const QString &templateId);

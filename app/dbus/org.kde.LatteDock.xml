@@ -3,6 +3,21 @@
   <interface name="org.kde.LatteDock">
     <method name="activateLauncherMenu">
     </method>
+    <method name="hasLauncher">
+        <arg name="launcherUrl" type="s" direction="in"/>
+        <arg name="screenName" type="s" direction="in"/>
+        <arg name="success" type="b" direction="out"/>
+    </method>
+    <method name="addLauncher">
+        <arg name="launcherUrl" type="s" direction="in"/>
+        <arg name="screenName" type="s" direction="in"/>
+        <arg name="success" type="b" direction="out"/>
+    </method>
+    <method name="removeLauncher">
+        <arg name="launcherUrl" type="s" direction="in"/>
+        <arg name="screenName" type="s" direction="in"/>
+        <arg name="success" type="b" direction="out"/>
+    </method>
     <method name="quitApplication">
     </method>
     <method name="setAutostart">

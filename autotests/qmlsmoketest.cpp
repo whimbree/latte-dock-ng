@@ -21,6 +21,8 @@ private Q_SLOTS:
     void compactAppletUsesLargerDefaultForVolumePopup();
     void compactAppletKeepsApplicationMenuPopupResizable();
     void applicationLauncherUsesFixedExternalSlot();
+    void latteTasksExposesPlasmaLauncherApi();
+    void latteDockDbusExportsLauncherApi();
 };
 
 void QmlSmokeTest::latteCoreQmlPluginLoadsFromBuildTree()
@@ -121,6 +123,43 @@ void QmlSmokeTest::applicationLauncherUsesFixedExternalSlot()
     QVERIFY(source.contains(QStringLiteral("isApplicationLauncherApplet")));
     QVERIFY(source.contains(QStringLiteral("org.kde.plasma.kickoff")));
     QVERIFY(source.contains(QStringLiteral("|| (!communicator.appletMainIconIsFound")));
+}
+
+void QmlSmokeTest::latteTasksExposesPlasmaLauncherApi()
+{
+    QFile latteTasks(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/main.qml"));
+    QVERIFY(latteTasks.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(latteTasks.readAll());
+    QVERIFY(source.contains(QStringLiteral("readonly property bool supportsLaunchers: true")));
+    QVERIFY(source.contains(QStringLiteral("function hasLauncher(url)")));
+    QVERIFY(source.contains(QStringLiteral("appletAbilities.launchers.hasLauncher(url)")));
+    QVERIFY(source.contains(QStringLiteral("function addLauncher(url)")));
+    QVERIFY(source.contains(QStringLiteral("appletAbilities.launchers.addLauncher(url)")));
+    QVERIFY(source.contains(QStringLiteral("function removeLauncher(url)")));
+    QVERIFY(source.contains(QStringLiteral("appletAbilities.launchers.removeLauncher(url)")));
+}
+
+void QmlSmokeTest::latteDockDbusExportsLauncherApi()
+{
+    QFile dbusXml(QStringLiteral(LATTE_SOURCE_DIR "/app/dbus/org.kde.LatteDock.xml"));
+    QVERIFY(dbusXml.open(QFile::ReadOnly));
+
+    const QString xml = QString::fromUtf8(dbusXml.readAll());
+    QVERIFY(xml.contains(QStringLiteral("<method name=\"hasLauncher\">")));
+    QVERIFY(xml.contains(QStringLiteral("<method name=\"addLauncher\">")));
+    QVERIFY(xml.contains(QStringLiteral("<method name=\"removeLauncher\">")));
+    QVERIFY(xml.contains(QStringLiteral("<arg name=\"launcherUrl\" type=\"s\" direction=\"in\"/>")));
+    QVERIFY(xml.contains(QStringLiteral("<arg name=\"screenName\" type=\"s\" direction=\"in\"/>")));
+    QVERIFY(xml.contains(QStringLiteral("<arg name=\"success\" type=\"b\" direction=\"out\"/>")));
+
+    QFile coronaHeader(QStringLiteral(LATTE_SOURCE_DIR "/app/lattecorona.h"));
+    QVERIFY(coronaHeader.open(QFile::ReadOnly));
+
+    const QString header = QString::fromUtf8(coronaHeader.readAll());
+    QVERIFY(header.contains(QStringLiteral("bool hasLauncher(QString launcherUrl, QString screenName);")));
+    QVERIFY(header.contains(QStringLiteral("bool addLauncher(QString launcherUrl, QString screenName);")));
+    QVERIFY(header.contains(QStringLiteral("bool removeLauncher(QString launcherUrl, QString screenName);")));
 }
 
 QTEST_MAIN(QmlSmokeTest)

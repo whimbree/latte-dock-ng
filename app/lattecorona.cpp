@@ -31,6 +31,7 @@
 #include "plasma/extended/screengeometries.h"
 #include "plasma/extended/screenpool.h"
 #include "plasma/extended/theme.h"
+#include "pluginids.h"
 #include "settings/universalsettings.h"
 #include "templates/templatesmanager.h"
 #include "view/originalview.h"
@@ -49,19 +50,27 @@
 // Qt
 #include <QAction>
 #include <QApplication>
+#include <QCursor>
 #include <QScreen>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QFontDatabase>
+#include <QGuiApplication>
+#include <QMetaMethod>
 #include <QProcess>
+#include <QQuickItem>
 #include <QQmlContext>
+#include <QUrl>
 
 // Plasma
+#include <Plasma/Applet>
 #include <Plasma/Plasma>
 #include <Plasma/Corona>
 #include <Plasma/Containment>
+#include <PlasmaQuick/AppletQuickItem>
 #include <PlasmaQuick/ConfigView>
 
 // KDE
@@ -78,6 +87,256 @@
 #include <KWayland/Client/registry.h>
 #include <KWayland/Client/plasmashell.h>
 #include <KWayland/Client/plasmawindowmanagement.h>
+
+namespace {
+
+QUrl launcherUrlFromString(const QString &launcherUrl)
+{
+    const QString trimmed = launcherUrl.trimmed();
+
+    if (trimmed.isEmpty()) {
+        return QUrl();
+    }
+
+    const QUrl parsed(trimmed);
+
+    if (parsed.scheme() == QLatin1String("applications")
+            || parsed.scheme() == QLatin1String("file")) {
+        return parsed;
+    }
+
+    const QFileInfo localFile(trimmed);
+
+    if (localFile.isAbsolute()) {
+        return QUrl::fromLocalFile(trimmed);
+    }
+
+    return parsed;
+}
+
+bool quickItemHasLauncherMethod(QQuickItem *item, const QByteArray &methodName)
+{
+    if (!item || !item->metaObject()) {
+        return false;
+    }
+
+    const QMetaObject *metaObject = item->metaObject();
+
+    for (int i = 0; i < metaObject->methodCount(); ++i) {
+        const QMetaMethod method = metaObject->method(i);
+
+        if (method.name() == methodName && method.parameterCount() == 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+QQuickItem *launcherApiItemForApplet(Plasma::Applet *applet, const QByteArray &methodName)
+{
+    if (!applet) {
+        return nullptr;
+    }
+
+    PlasmaQuick::AppletQuickItem *appletInterface = PlasmaQuick::AppletQuickItem::itemForApplet(applet);
+
+    if (!appletInterface) {
+        appletInterface = applet->property("_plasma_graphicObject").value<PlasmaQuick::AppletQuickItem *>();
+    }
+
+    if (!appletInterface) {
+        return nullptr;
+    }
+
+    QList<QQuickItem *> queue{appletInterface};
+
+    if (QQuickItem *compactItem = appletInterface->compactRepresentationItem()) {
+        queue << compactItem;
+    }
+
+    if (QQuickItem *fullItem = appletInterface->fullRepresentationItem()) {
+        queue << fullItem;
+    }
+
+    while (!queue.isEmpty()) {
+        QQuickItem *item = queue.takeFirst();
+
+        if (quickItemHasLauncherMethod(item, methodName)) {
+            return item;
+        }
+
+        queue << item->childItems();
+    }
+
+    return nullptr;
+}
+
+Plasma::Applet *latteTasksAppletForView(Latte::View *view)
+{
+    if (!view || !view->containment()) {
+        return nullptr;
+    }
+
+    const auto applets = view->containment()->applets();
+
+    for (auto *applet : applets) {
+        if (applet && applet->pluginMetaData().pluginId() == QLatin1String(Latte::PluginId::kPlasmoid)) {
+            return applet;
+        }
+    }
+
+    return nullptr;
+}
+
+bool viewMatchesTargetScreen(Latte::View *view, QScreen *targetScreen, const QString &screenName)
+{
+    if (!view || !view->screen()) {
+        return false;
+    }
+
+    if (!screenName.isEmpty()) {
+        return view->screen()->name() == screenName;
+    }
+
+    return targetScreen && (view->screen() == targetScreen || view->screen()->name() == targetScreen->name());
+}
+
+QScreen *launcherTargetScreen(const QString &screenName)
+{
+    if (!screenName.isEmpty()) {
+        const auto screens = qGuiApp->screens();
+
+        for (auto *screen : screens) {
+            if (screen && screen->name() == screenName) {
+                return screen;
+            }
+        }
+    }
+
+    if (QScreen *screen = qGuiApp->screenAt(QCursor::pos())) {
+        return screen;
+    }
+
+    return qGuiApp->primaryScreen();
+}
+
+bool invokeLauncherMethod(QObject *item, const QByteArray &methodName, const QUrl &url, bool *returnValue)
+{
+    if (!item || !item->metaObject()) {
+        return false;
+    }
+
+    const QMetaObject *metaObject = item->metaObject();
+    const QVariant variantUrl = QVariant::fromValue(url);
+
+    for (int i = 0; i < metaObject->methodCount(); ++i) {
+        const QMetaMethod method = metaObject->method(i);
+
+        if (method.name() != methodName || method.parameterCount() != 1) {
+            continue;
+        }
+
+        const bool qurlParameter = method.parameterMetaType(0).id() == QMetaType::QUrl;
+
+        if (returnValue) {
+            bool boolResult{false};
+
+            if (method.returnMetaType().id() == QMetaType::Bool) {
+                const bool invoked = qurlParameter
+                        ? method.invoke(item, Q_RETURN_ARG(bool, boolResult), Q_ARG(QUrl, url))
+                        : method.invoke(item, Q_RETURN_ARG(bool, boolResult), Q_ARG(QVariant, variantUrl));
+
+                if (invoked) {
+                    *returnValue = boolResult;
+                    return true;
+                }
+            }
+
+            QVariant variantResult;
+            const bool invoked = qurlParameter
+                    ? method.invoke(item, Q_RETURN_ARG(QVariant, variantResult), Q_ARG(QUrl, url))
+                    : method.invoke(item, Q_RETURN_ARG(QVariant, variantResult), Q_ARG(QVariant, variantUrl));
+
+            if (invoked) {
+                *returnValue = variantResult.toBool();
+                return true;
+            }
+        } else {
+            const bool invoked = qurlParameter
+                    ? method.invoke(item, Q_ARG(QUrl, url))
+                    : method.invoke(item, Q_ARG(QVariant, variantUrl));
+
+            if (invoked) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool invokeLauncherOperation(Latte::Corona *corona, const QByteArray &methodName, const QString &launcherUrl, const QString &screenName, bool *returnValue)
+{
+    if (!corona || !corona->layoutsManager() || !corona->layoutsManager()->synchronizer()) {
+        return false;
+    }
+
+    const QUrl url = launcherUrlFromString(launcherUrl);
+
+    if (!url.isValid()) {
+        return false;
+    }
+
+    const QList<Latte::View *> views = corona->layoutsManager()->synchronizer()->sortedCurrentViews();
+    QScreen *targetScreen = launcherTargetScreen(screenName);
+    QList<Latte::View *> targetViews;
+    QList<Latte::View *> fallbackViews;
+
+    for (auto *view : views) {
+        if (!latteTasksAppletForView(view)) {
+            continue;
+        }
+
+        if (viewMatchesTargetScreen(view, targetScreen, screenName)) {
+            targetViews << view;
+        } else {
+            fallbackViews << view;
+        }
+    }
+
+    auto tryViews = [&](const QList<Latte::View *> &candidates) {
+        for (auto *view : candidates) {
+            Plasma::Applet *applet = latteTasksAppletForView(view);
+            QQuickItem *apiItem = launcherApiItemForApplet(applet, methodName);
+
+            if (!apiItem) {
+                continue;
+            }
+
+            if (returnValue) {
+                bool result{false};
+
+                if (invokeLauncherMethod(apiItem, methodName, url, &result)) {
+                    *returnValue = result;
+                    return true;
+                }
+            } else if (invokeLauncherMethod(apiItem, methodName, url, nullptr)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    if (tryViews(targetViews)) {
+        return true;
+    }
+
+    return tryViews(fallbackViews);
+}
+
+} // namespace
 
 namespace Latte {
 
@@ -1050,6 +1309,23 @@ QStringList Corona::appletsIds()
 void Corona::activateLauncherMenu()
 {
     m_globalShortcuts->activateLauncherMenu();
+}
+
+bool Corona::hasLauncher(QString launcherUrl, QString screenName)
+{
+    bool result{false};
+    invokeLauncherOperation(this, QByteArrayLiteral("hasLauncher"), launcherUrl, screenName, &result);
+    return result;
+}
+
+bool Corona::addLauncher(QString launcherUrl, QString screenName)
+{
+    return invokeLauncherOperation(this, QByteArrayLiteral("addLauncher"), launcherUrl, screenName, nullptr);
+}
+
+bool Corona::removeLauncher(QString launcherUrl, QString screenName)
+{
+    return invokeLauncherOperation(this, QByteArrayLiteral("removeLauncher"), launcherUrl, screenName, nullptr);
 }
 
 void Corona::windowColorScheme(QString windowIdAndScheme)

@@ -43,6 +43,7 @@ PlasmoidItem {
 
     readonly property var theme: Kirigami.Theme
     readonly property var units: Kirigami.Units
+    readonly property bool supportsLaunchers: true
 
     Layout.fillWidth: scrollingEnabled && !root.vertical
     Layout.fillHeight: scrollingEnabled && root.vertical
@@ -1292,6 +1293,18 @@ PlasmoidItem {
 
     function getLauncherList() {
         return plasmoid.configuration.launchers59;
+    }
+
+    function hasLauncher(url) {
+        return appletAbilities.launchers.hasLauncher(url);
+    }
+
+    function addLauncher(url) {
+        appletAbilities.launchers.addLauncher(url);
+    }
+
+    function removeLauncher(url) {
+        appletAbilities.launchers.removeLauncher(url);
     }
 
     function previewContainsMouse() {
