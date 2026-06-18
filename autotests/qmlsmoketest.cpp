@@ -25,6 +25,9 @@ private Q_SLOTS:
     void latteDockDbusExportsLauncherApi();
     void containmentClearsParabolicStateWhenEdgeChanges();
     void taskWindowDoesNotKeepStaleFrozenZoom();
+    void parabolicAnimationRecoveryKeepsZoomStateBounded();
+    void launcherRestoreCoversGeometryTransitionSettling();
+    void sessionShutdownHandlingMatchesStableWaylandPath();
 };
 
 void QmlSmokeTest::latteCoreQmlPluginLoadsFromBuildTree()
@@ -184,6 +187,77 @@ void QmlSmokeTest::taskWindowDoesNotKeepStaleFrozenZoom()
     QVERIFY(source.contains(QStringLiteral("function keepFrozenZoomForCurrentTask()")));
     QVERIFY(source.contains(QStringLiteral("taskItem.parabolicAreaIsCurrent || taskItem.parabolicAreaContainsMouse")));
     QVERIFY(source.contains(QStringLiteral("taskItem.parabolicItem.zoom = keepFrozenZoomForCurrentTask() ? frozenTask.zoom : 1;")));
+}
+
+void QmlSmokeTest::parabolicAnimationRecoveryKeepsZoomStateBounded()
+{
+    QFile restoreAnimation(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/items/basicitem/RestoreAnimation.qml"));
+    QVERIFY(restoreAnimation.open(QFile::ReadOnly));
+
+    const QString restoreSource = QString::fromUtf8(restoreAnimation.readAll());
+    QVERIFY(restoreSource.contains(QStringLiteral("target: abilityItem.parabolicItem")));
+    QVERIFY(restoreSource.contains(QStringLiteral("property: \"zoom\"")));
+    QVERIFY(restoreSource.contains(QStringLiteral("to: 1")));
+
+    QFile parabolicItem(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/items/basicitem/ParabolicItem.qml"));
+    QVERIFY(parabolicItem.open(QFile::ReadOnly));
+
+    const QString parabolicSource = QString::fromUtf8(parabolicItem.readAll());
+    QVERIFY(parabolicSource.contains(QStringLiteral("function onFormFactorChanged()")));
+    QVERIFY(parabolicSource.contains(QStringLiteral("parabolicItem.zoom = 1.01")));
+    QVERIFY(parabolicSource.contains(QStringLiteral("parabolicItem.zoom = 1")));
+    QVERIFY(parabolicSource.contains(QStringLiteral("parabolicItem.sendEndOfNeedBothAxisAnimation();")));
+}
+
+void QmlSmokeTest::launcherRestoreCoversGeometryTransitionSettling()
+{
+    QFile launchers(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(launchers.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(launchers.readAll());
+    QVERIFY(source.contains(QStringLiteral("function scheduleLaunchersRestore(reason)")));
+    QVERIFY(source.contains(QStringLiteral("launchersRestoreTimer.restart()")));
+    QVERIFY(source.contains(QStringLiteral("launchersRestoreFollowUpTimer.restart()")));
+    QVERIFY(source.contains(QStringLiteral("launchersRestoreFinalTimer.restart()")));
+    QVERIFY(source.contains(QStringLiteral("_launchers.restoreLaunchersFromConfig(_launchers._pendingRestoreReason + \":primary\")")));
+    QVERIFY(source.contains(QStringLiteral("_launchers.restoreLaunchersFromConfig(_launchers._pendingRestoreReason + \":followup\")")));
+    QVERIFY(source.contains(QStringLiteral("_launchers.restoreLaunchersFromConfig(_launchers._pendingRestoreReason + \":final\")")));
+}
+
+void QmlSmokeTest::sessionShutdownHandlingMatchesStableWaylandPath()
+{
+    QFile mainSourceFile(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(mainSourceFile.open(QFile::ReadOnly));
+    const QString mainSource = QString::fromUtf8(mainSourceFile.readAll());
+
+    QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGTERM);")));
+    QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGINT);")));
+    QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGHUP);")));
+    QVERIFY(mainSource.contains(QStringLiteral("QCoreApplication::setQuitLockEnabled(false);")));
+    QVERIFY(mainSource.contains(QStringLiteral("qputenv(\"LATTE_SESSION_ENDING\", \"1\");")));
+    QVERIFY(mainSource.contains(QStringLiteral("app.setProperty(\"latte_session_ending\", true);")));
+    QVERIFY(mainSource.contains(QStringLiteral("QObject::connect(&app, &QGuiApplication::commitDataRequest")));
+    QVERIFY(mainSource.contains(QStringLiteral("sm.setRestartHint(QSessionManager::RestartNever);")));
+    QVERIFY(mainSource.contains(QStringLiteral("QObject::connect(&app, &QGuiApplication::saveStateRequest")));
+    QVERIFY(mainSource.contains(QStringLiteral("sessionShutdownPoll.setInterval(500);")));
+    QVERIFY(mainSource.contains(QStringLiteral("flagSetTimer.hasExpired(5000)")));
+    QVERIFY(mainSource.contains(QStringLiteral("qunsetenv(\"LATTE_SESSION_ENDING\");")));
+
+    const int saveStateStart = mainSource.indexOf(QStringLiteral("QObject::connect(&app, &QGuiApplication::saveStateRequest"));
+    const int pollerStart = mainSource.indexOf(QStringLiteral("QTimer sessionShutdownPoll"));
+    QVERIFY(saveStateStart >= 0);
+    QVERIFY(pollerStart > saveStateStart);
+    const QString saveStateBlock = mainSource.mid(saveStateStart, pollerStart - saveStateStart);
+    QVERIFY(saveStateBlock.contains(QStringLiteral("RestartNever")));
+    QVERIFY(!saveStateBlock.contains(QStringLiteral("app.quit()")));
+
+    QFile coronaSourceFile(QStringLiteral(LATTE_SOURCE_DIR "/app/lattecorona.cpp"));
+    QVERIFY(coronaSourceFile.open(QFile::ReadOnly));
+    const QString coronaSource = QString::fromUtf8(coronaSourceFile.readAll());
+    QVERIFY(coronaSource.contains(QStringLiteral("qEnvironmentVariableIntValue(\"LATTE_SESSION_ENDING\") == 1")));
+    QVERIFY(coronaSource.contains(QStringLiteral("qApp->property(\"latte_session_ending\").toBool()")));
+    QVERIFY(coronaSource.contains(QStringLiteral("m_layoutsManager->synchronizer()->hideAllViews();")));
+    QVERIFY(coronaSource.contains(QStringLiteral("fast shutdown path for session logout")));
 }
 
 QTEST_MAIN(QmlSmokeTest)

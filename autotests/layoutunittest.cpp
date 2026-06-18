@@ -20,6 +20,7 @@ class LayoutUnitTest : public QObject
 private Q_SLOTS:
     void layoutNameStripsPathAndLatteSuffix();
     void combinedFreeEdgesPreservesFirstListOrder();
+    void abstractLayoutUsesAssignedNameWhenProvided();
     void abstractLayoutLoadsSettingsFromFile();
     void abstractLayoutSettersPersistSettings();
 };
@@ -49,6 +50,19 @@ void LayoutUnitTest::combinedFreeEdgesPreservesFirstListOrder()
     QCOMPARE(combined.count(), 2);
     QCOMPARE(combined[0], Plasma::Types::BottomEdge);
     QCOMPARE(combined[1], Plasma::Types::TopEdge);
+}
+
+void LayoutUnitTest::abstractLayoutUsesAssignedNameWhenProvided()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString layoutFile = dir.path() + QStringLiteral("/Imported File Name.layout.latte");
+    QVERIFY(QFile(layoutFile).open(QIODevice::WriteOnly));
+
+    Latte::Layout::AbstractLayout layout(nullptr, layoutFile, QStringLiteral("Stable Imported Layout"));
+    QCOMPARE(layout.name(), QStringLiteral("Stable Imported Layout"));
+    QCOMPARE(layout.file(), layoutFile);
 }
 
 void LayoutUnitTest::abstractLayoutLoadsSettingsFromFile()
