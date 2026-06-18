@@ -60,7 +60,7 @@ If a test exposes a production bug, keep the regression test and make the smalle
 
 Some Plasma 6 compatibility work is intentionally conservative because broad cleanup can regress user-visible shell behavior:
 
-- `app/knscompat.cpp` still creates user-local QML overrides for the KNS dialog, but the source QML root must be resolved explicitly and the override can be disabled with `LATTE_DISABLE_KNS_COMPAT=1` for diagnosis.
+- `app/knscompat.cpp` still creates user-local QML overrides for the KNS dialog, but the source QML root must be resolved explicitly and the override can be disabled with `LATTE_DISABLE_KNS_COMPAT=1` for diagnosis. Use `LATTE_KNS_COMPAT_SYSTEM_QML_ROOTS` and `LATTE_KNS_COMPAT_USER_QML_ROOT` for isolated cross-distro path tests instead of touching the real user QML tree.
 - QML smoke tests may use source-level regression locks when a behavior depends on a live Plasma shell, KWin, or third-party applet. Prefer real `QQmlComponent` tests when practical, but keep source locks for previously fixed regressions that are hard to exercise headlessly.
 - CMake helper modules keep target resolution, compiler warning relaxation, and packaging metadata out of the top-level build file.
 - Broad QML import modernization should be done only in touched files. Do not churn all `QtQuick 2.x` imports in one pass.

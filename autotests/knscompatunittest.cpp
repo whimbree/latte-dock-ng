@@ -22,6 +22,7 @@ private Q_SLOTS:
     void firstRunWritesPatchedOverridesAndStamp();
     void optOutDoesNotWriteOverrides();
     void usesConfiguredSystemQmlRoot();
+    void usesConfiguredUserQmlRoot();
     void missingSystemQmlRootDoesNotCreatePartialOverrides();
 
 private:
@@ -34,12 +35,14 @@ void KnsCompatUnitTest::init()
 {
     qunsetenv("LATTE_DISABLE_KNS_COMPAT");
     qunsetenv("LATTE_KNS_COMPAT_SYSTEM_QML_ROOTS");
+    qunsetenv("LATTE_KNS_COMPAT_USER_QML_ROOT");
 }
 
 void KnsCompatUnitTest::cleanup()
 {
     qunsetenv("LATTE_DISABLE_KNS_COMPAT");
     qunsetenv("LATTE_KNS_COMPAT_SYSTEM_QML_ROOTS");
+    qunsetenv("LATTE_KNS_COMPAT_USER_QML_ROOT");
 }
 
 void KnsCompatUnitTest::isolateHomeAndData(QTemporaryDir &home, QTemporaryDir &data)
@@ -223,6 +226,27 @@ void KnsCompatUnitTest::usesConfiguredSystemQmlRoot()
     QVERIFY(QFileInfo(linkedNewstuff).isSymLink());
     QCOMPARE(QFileInfo(linkedNewstuff).symLinkTarget(),
              systemQml.path() + QStringLiteral("/org/kde/newstuff/Button.qml"));
+}
+
+void KnsCompatUnitTest::usesConfiguredUserQmlRoot()
+{
+    QTemporaryDir home;
+    QTemporaryDir data;
+    QTemporaryDir systemQml;
+    QTemporaryDir userQml;
+    isolateHomeAndData(home, data);
+    QVERIFY(systemQml.isValid());
+    QVERIFY(userQml.isValid());
+    createSystemQmlRoot(systemQml.path());
+    qputenv("LATTE_KNS_COMPAT_SYSTEM_QML_ROOTS", QFile::encodeName(systemQml.path()));
+    qputenv("LATTE_KNS_COMPAT_USER_QML_ROOT", QFile::encodeName(userQml.path()));
+
+    ensureKnsCompat();
+
+    QVERIFY(QFile::exists(userQml.path() + QStringLiteral("/org/kde/kirigami/templates/qmldir")));
+    QVERIFY(QFile::exists(userQml.path() + QStringLiteral("/org/kde/newstuff/qmldir")));
+    QVERIFY(QFile::exists(userQml.path() + QStringLiteral("/org/kde/kirigami/controls/qmldir")));
+    QVERIFY(!QFile::exists(qmlRoot() + QStringLiteral("/org/kde/kirigami/templates/qmldir")));
 }
 
 void KnsCompatUnitTest::missingSystemQmlRootDoesNotCreatePartialOverrides()

@@ -227,6 +227,7 @@ UploadPage 1.85 UploadPage.qml
 
 static constexpr auto kDisableCompatEnv = "LATTE_DISABLE_KNS_COMPAT";
 static constexpr auto kSystemRootsEnv = "LATTE_KNS_COMPAT_SYSTEM_QML_ROOTS";
+static constexpr auto kUserRootEnv = "LATTE_KNS_COMPAT_USER_QML_ROOT";
 
 static QStringList splitPathList(const QString &paths)
 {
@@ -294,6 +295,13 @@ static QString resolvedSystemQmlBase()
 
 static QString userLocalQmlBase(const QString &systemQmlBase)
 {
+    if (qEnvironmentVariableIsSet(kUserRootEnv)) {
+        const QString configuredRoot = QDir::cleanPath(QString::fromLocal8Bit(qgetenv(kUserRootEnv)));
+        if (!configuredRoot.isEmpty()) {
+            return configuredRoot;
+        }
+    }
+
     const QString userLocalPrefix = QDir::homePath() + QStringLiteral("/.local");
 
     if (systemQmlBase.startsWith(QStringLiteral("/usr/local/"))) {
