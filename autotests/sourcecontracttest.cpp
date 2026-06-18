@@ -36,6 +36,7 @@ private Q_SLOTS:
     void cmakeAutotestRegistrationMaintainsAggregateTarget();
     void cmakePackagingConfigLivesInModule();
     void cmakeWarningRelaxationLivesInModule();
+    void cmakeFindsQtCoreToolsBeforeKdeInstallDirs();
 };
 
 void SourceContractTest::plasmaVolumeBootstrapContractMovedToQmlSmokeTest()
@@ -548,6 +549,19 @@ void SourceContractTest::cmakeWarningRelaxationLivesInModule()
     QVERIFY(cmakeSource.contains(QStringLiteral("latte_apply_relaxed_warning_flags()")));
     QVERIFY(!cmakeSource.contains(QStringLiteral("set(LATTE_RELAXED_WARNING_FLAGS")));
     QVERIFY(!cmakeSource.contains(QStringLiteral("foreach(_latte_warning_flag IN LISTS LATTE_RELAXED_WARNING_FLAGS)")));
+}
+
+void SourceContractTest::cmakeFindsQtCoreToolsBeforeKdeInstallDirs()
+{
+    QFile cmake(QStringLiteral(LATTE_SOURCE_DIR "/CMakeLists.txt"));
+    QVERIFY(cmake.open(QFile::ReadOnly));
+    const QString cmakeSource = QString::fromUtf8(cmake.readAll());
+
+    const qsizetype qtCoreToolsIndex = cmakeSource.indexOf(QStringLiteral("find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED NO_MODULE COMPONENTS CoreTools"));
+    const qsizetype kdeInstallDirsIndex = cmakeSource.indexOf(QStringLiteral("include(KDEInstallDirs)"));
+    QVERIFY(qtCoreToolsIndex >= 0);
+    QVERIFY(kdeInstallDirsIndex >= 0);
+    QVERIFY(qtCoreToolsIndex < kdeInstallDirsIndex);
 }
 
 QTEST_MAIN(SourceContractTest)
