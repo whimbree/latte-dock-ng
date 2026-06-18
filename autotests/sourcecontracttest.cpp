@@ -11,7 +11,7 @@ class SourceContractTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void pulseAudioBootstrapContractMovedToQmlSmokeTest();
+    void plasmaVolumeBootstrapContractMovedToQmlSmokeTest();
     void compactAppletPopupSizingContractMovedToQmlSmokeTest();
     void applicationLauncherUsesFixedExternalSlot();
     void latteTasksExposesPlasmaLauncherApi();
@@ -38,13 +38,14 @@ private Q_SLOTS:
     void cmakeWarningRelaxationLivesInModule();
 };
 
-void SourceContractTest::pulseAudioBootstrapContractMovedToQmlSmokeTest()
+void SourceContractTest::plasmaVolumeBootstrapContractMovedToQmlSmokeTest()
 {
     QFile qmlSmoke(QStringLiteral(LATTE_SOURCE_DIR "/autotests/qmlsmoketest.cpp"));
     QVERIFY(qmlSmoke.open(QFile::ReadOnly));
     const QString qmlSmokeSource = QString::fromUtf8(qmlSmoke.readAll());
-    QVERIFY(qmlSmokeSource.contains(QStringLiteral("pulseAudioBootstrapLoadsFromSource")));
+    QVERIFY(qmlSmokeSource.contains(QStringLiteral("plasmaVolumeBootstrapLoadsFromSource")));
     QVERIFY(qmlSmokeSource.contains(QStringLiteral("LATTE_PULSEAUDIO_QML")));
+    QVERIFY(qmlSmokeSource.contains(QStringLiteral("org/kde/plasma/private/volume")));
     QVERIFY(qmlSmokeSource.contains(QStringLiteral("bootstrapMaxAttempts")));
     QVERIFY(qmlSmokeSource.contains(QStringLiteral("paFixTimer")));
 

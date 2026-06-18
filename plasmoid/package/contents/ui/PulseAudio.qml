@@ -215,7 +215,9 @@ QtObject {
     // Prime the SinkModel (output devices) so the Plasma volume applet gets
     // correct initial state when first added after a cold boot.  Without this
     // the sink subscription is only established on first consumer access,
-    // which races with the async PulseAudio server response.
+    // which races with the async Plasma volume backend response. On modern
+    // desktops this is commonly backed by PipeWire through pipewire-pulse,
+    // while Plasma's private QML API still exposes PulseAudio-compatible names.
     // An Instantiator is needed to drive the model query — a bare  property var
     // creates the model but never triggers the initial data fetch.
     property Instantiator _sinkModelPrimer: Instantiator {
@@ -274,19 +276,20 @@ QtObject {
     }
 
     Component.onCompleted: {
-        console.log("PulseAudio Latte interface was loaded...");
+        console.log("Plasma volume Latte interface was loaded...");
         bootstrapAttempts = 0;
         paFixTimer.start();
     }
 
-    // ── plasma-pa PreferredDevice workaround ────────────────────────────
+    // ── Plasma volume PreferredDevice workaround ────────────────────────
     // PreferredDevice's constructor only connects to Server.defaultSinkChanged
-    // — it never calls updatePreferredSink() initially.  If the PulseAudio
-    // server is already available when PreferredDevice is first created, the
+    // — it never calls updatePreferredSink() initially.  If the Plasma volume
+    // backend is already available when PreferredDevice is first created, the
     // signal never fires and PreferredDevice.sink stays null forever, causing
-    // the volume applet to show a muted icon.
+    // the volume applet to show a muted icon. PipeWire systems normally reach
+    // this path through the pipewire-pulse compatibility service.
     //
-    // We wait briefly for the PulseAudio context to be warm, then emit
+    // We wait briefly for the Plasma volume context to be warm, then emit
     // defaultSinkChanged once on the Server singleton to force PreferredDevice
     // to call updatePreferredSink() and read the initial sink state.
     property Timer paFixTimer: Timer {

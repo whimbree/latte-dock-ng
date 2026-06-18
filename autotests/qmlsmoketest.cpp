@@ -29,7 +29,7 @@ private Q_SLOTS:
     void parabolicItemZoomRecoveryLoadsFromSource();
     void compactAppletPopupSizingLoadsFromSource();
     void launchersGeometryRestoreSchedulingLoadsFromSource();
-    void pulseAudioBootstrapLoadsFromSource();
+    void plasmaVolumeBootstrapLoadsFromSource();
 };
 
 class ParabolicTargetStub : public QObject
@@ -729,7 +729,7 @@ static bool writeTextFile(const QString &path, const QByteArray &contents)
     return file.write(contents) == contents.size();
 }
 
-static void addFakePulseAudioImport(QQmlEngine &engine, QTemporaryDir &importRoot)
+static void addFakePlasmaVolumeImport(QQmlEngine &engine, QTemporaryDir &importRoot)
 {
     QVERIFY(importRoot.isValid());
 
@@ -1083,11 +1083,11 @@ void QmlSmokeTest::launchersGeometryRestoreSchedulingLoadsFromSource()
     QCOMPARE(tasksModel.syncCount(), 1);
 }
 
-void QmlSmokeTest::pulseAudioBootstrapLoadsFromSource()
+void QmlSmokeTest::plasmaVolumeBootstrapLoadsFromSource()
 {
     QTemporaryDir importRoot;
     QQmlEngine engine;
-    addFakePulseAudioImport(engine, importRoot);
+    addFakePlasmaVolumeImport(engine, importRoot);
 
     QQmlComponent component(&engine, QUrl::fromLocalFile(QStringLiteral(LATTE_PULSEAUDIO_QML)));
     std::unique_ptr<QObject> object(component.create());
