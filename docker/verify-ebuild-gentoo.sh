@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# Gentoo ebuild verification used by docker-compose and release CI.
+set -euo pipefail
+
+version="${VERSION:-}"
+if [[ -z "${version}" ]]; then
+    version="$(sed -n 's/^[[:space:]]*set(VERSION \([^)]*\)).*/\1/p' /src/CMakeLists.txt | head -n1)"
+fi
+
+if [[ -z "${version}" ]]; then
+    echo "Unable to determine Latte Dock NG version" >&2
+    exit 1
+fi
+
+export CCACHE_DISABLE=1
+export PORTAGE_TMPDIR="${PORTAGE_TMPDIR:-/tmp/latte-portage-tmp}"
+export DISTDIR="${DISTDIR:-/tmp/latte-distfiles}"
+
+overlay="/tmp/latte-overlay"
+package_dir="${overlay}/kde-misc/latte-dock-ng"
+dist_name="latte-dock-ng-${version}.tar.gz"
+
+rm -rf "${overlay}" "${PORTAGE_TMPDIR}"
+mkdir -p "${package_dir}" "${DISTDIR}" "${PORTAGE_TMPDIR}" "${overlay}/metadata"
+
+cat > "${overlay}/metadata/layout.conf" <<'EOF'
+masters = gentoo
+thin-manifests = true
+EOF
+
+cat > "${package_dir}/metadata.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+  <maintainer type="person">
+    <email>ruizhi.zhong88@gmail.com</email>
+    <name>Ruizhi Zhong</name>
+  </maintainer>
+</pkgmetadata>
+EOF
+
+if [[ "${GENTOO_VERIFY_FETCH_TAG:-false}" == "true" ]]; then
+    src_uri='https://github.com/ruizhi-lab/latte-dock-ng/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz'
+else
+    tar --exclude-vcs --exclude='./build*' --exclude='./.cache' \
+        --transform "s#^#latte-dock-ng-${version}/#" \
+        -czf "${DISTDIR}/${dist_name}" -C /src .
+    src_uri="file://${DISTDIR}/${dist_name} -> "'${P}.tar.gz'
+fi
+
+cat > "${package_dir}/latte-dock-ng-${version}.ebuild" <<EOF
+# Copyright 1999-2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=8
+
+inherit ecm xdg
+
+DESCRIPTION="Wayland-first Latte Dock NG for Plasma 6.5+"
+HOMEPAGE="https://github.com/ruizhi-lab/latte-dock-ng"
+SRC_URI="${src_uri}"
+
+LICENSE="GPL-2+ GPL-3+ LGPL-2+ || ( LGPL-2.1 LGPL-3 )"
+SLOT="0"
+KEYWORDS="~amd64"
+
+COMMON_DEPEND="
+	>=dev-libs/plasma-wayland-protocols-1.6
+	>=dev-libs/wayland-1.22
+	>=dev-qt/qtbase-6.6:6[dbus,gui,widgets]
+	>=dev-qt/qtdeclarative-6.6:6
+	>=dev-qt/qtwayland-6.6:6
+	>=kde-frameworks/karchive-6.0:6
+	>=kde-frameworks/kcmutils-6.0:6
+	>=kde-frameworks/kconfig-6.0:6
+	>=kde-frameworks/kcoreaddons-6.0:6
+	>=kde-frameworks/kcrash-6.0:6
+	>=kde-frameworks/kdbusaddons-6.0:6
+	>=kde-frameworks/kdeclarative-6.0:6
+	>=kde-frameworks/kglobalaccel-6.0:6
+	>=kde-frameworks/kguiaddons-6.0:6
+	>=kde-frameworks/ki18n-6.0:6
+	>=kde-frameworks/kiconthemes-6.0:6
+	>=kde-frameworks/kio-6.0:6
+	>=kde-frameworks/kirigami-6.0:6
+	>=kde-frameworks/kitemmodels-6.0:6
+	>=kde-frameworks/knewstuff-6.0:6
+	>=kde-frameworks/knotifications-6.0:6
+	>=kde-frameworks/kpackage-6.0:6
+	>=kde-frameworks/ksvg-6.0:6
+	>=kde-frameworks/kwindowsystem-6.0:6
+	>=kde-frameworks/kxmlgui-6.0:6
+	>=kde-plasma/kpipewire-6.5:6
+	>=kde-plasma/kscreenlocker-6.5:6
+	>=kde-plasma/kwayland-6.5:6
+	>=kde-plasma/layer-shell-qt-6.5:6
+	>=kde-plasma/libplasma-6.5:6
+	>=kde-plasma/plasma-activities-6.5:6
+	>=kde-plasma/plasma-activities-stats-6.5:6
+	>=kde-plasma/plasma-workspace-6.5:6
+"
+RDEPEND="\${COMMON_DEPEND}"
+DEPEND="\${COMMON_DEPEND}"
+BDEPEND="
+	>=dev-qt/qtbase-6.6:6
+	>=kde-frameworks/extra-cmake-modules-6.0
+	virtual/pkgconfig
+"
+
+src_configure() {
+	local mycmakeargs=(
+		-DBUILD_TESTING=OFF
+	)
+
+	cmake_src_configure
+}
+
+src_install() {
+	cmake_src_install
+}
+
+pkg_postinst() {
+	xdg_pkg_postinst
+}
+
+pkg_postrm() {
+	xdg_pkg_postrm
+}
+EOF
+
+cd "${overlay}"
+ebuild "${package_dir}/latte-dock-ng-${version}.ebuild" manifest
+ebuild "${package_dir}/latte-dock-ng-${version}.ebuild" clean configure compile install
+
+echo "=== Gentoo ebuild verification succeeded for latte-dock-ng-${version} ==="

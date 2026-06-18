@@ -62,9 +62,33 @@ jobs:
           name: package-${{ matrix.distro }}
           path: dist/
 
+  gentoo-ebuild:
+    name: Gentoo ebuild
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Build Docker image (gentoo)
+        run: docker build -t latte-build-gentoo --build-arg USE_MIRRORS=false -f docker/Dockerfile.gentoo docker/
+
+      - name: Verify ebuild (gentoo)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/src:ro \
+            -e VERSION="${{ env.VERSION }}" \
+            -e GENTOO_VERIFY_FETCH_TAG=true \
+            --tmpfs /tmp:exec \
+            latte-build-gentoo \
+            bash /src/docker/verify-ebuild-gentoo.sh
+
   release:
     name: Create Release
-    needs: package
+    needs:
+      - package
+      - gentoo-ebuild
     runs-on: ubuntu-24.04
     permissions:
       contents: write

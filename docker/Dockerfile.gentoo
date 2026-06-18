@@ -1,0 +1,117 @@
+FROM gentoo/stage3:latest
+
+ARG USE_MIRRORS=true
+ARG JOBS=4
+ARG GENTOO_SYNC_URI=rsync://rsync.gentoo.org/gentoo-portage
+ARG GENTOO_SYNC_URI_CN=rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage
+ARG GENTOO_MIRRORS_URI=https://distfiles.gentoo.org
+ARG GENTOO_MIRRORS_URI_CN=https://mirrors.tuna.tsinghua.edu.cn/gentoo
+ARG GENTOO_BINHOST_URI=https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64
+ARG GENTOO_BINHOST_URI_CN=https://mirrors.tuna.tsinghua.edu.cn/gentoo/releases/amd64/binpackages/23.0/x86-64
+
+RUN if [ "${USE_MIRRORS}" = "true" ]; then \
+      sync_uri="${GENTOO_SYNC_URI_CN}" ; \
+      mirrors_uri="${GENTOO_MIRRORS_URI_CN}" ; \
+      binhost_uri="${GENTOO_BINHOST_URI_CN}" ; \
+    else \
+      sync_uri="${GENTOO_SYNC_URI}" ; \
+      mirrors_uri="${GENTOO_MIRRORS_URI}" ; \
+      binhost_uri="${GENTOO_BINHOST_URI}" ; \
+    fi && \
+    mkdir -p /etc/portage/repos.conf /etc/portage/binrepos.conf && \
+    rm -f /etc/portage/binrepos.conf/* && \
+    printf '%s\n' \
+      '[gentoo]' \
+      'location = /var/db/repos/gentoo' \
+      'sync-type = rsync' \
+      "sync-uri = ${sync_uri}" \
+      'auto-sync = yes' \
+      > /etc/portage/repos.conf/gentoo.conf && \
+    printf '%s\n' \
+      '[gentoo]' \
+      'priority = 1' \
+      "sync-uri = ${binhost_uri}" \
+      'location = /var/cache/binhost/gentoo' \
+      'verify-signature = true' \
+      > /etc/portage/binrepos.conf/gentoo.conf && \
+    printf '%s\n' \
+      'FEATURES="getbinpkg -usersandbox -network-sandbox -pid-sandbox -ipc-sandbox"' \
+      'USE="X cups dbus elogind gui opengl qml wayland widgets"' \
+      'LLVM_SLOT="21"' \
+      "GENTOO_MIRRORS=\"${mirrors_uri}\"" \
+      'EMERGE_DEFAULT_OPTS="--jobs='"${JOBS}"' --load-average='"${JOBS}"' --getbinpkg --usepkg --binpkg-respect-use=y --autounmask-write=y --autounmask-continue=y --verbose"' \
+      >> /etc/portage/make.conf && \
+    mkdir -p /etc/portage/package.use && \
+    printf '%s\n' \
+      'app-text/xmlto text' \
+      'dev-qt/qt5compat icu qml' \
+      'dev-qt/qtbase cups icu libproxy opengl wayland' \
+      'dev-qt/qtdeclarative opengl' \
+      'dev-qt/qtlocation opengl' \
+      'dev-qt/qtmultimedia opengl' \
+      'dev-qt/qtquick3d opengl' \
+      'dev-qt/qttools opengl' \
+      'kde-frameworks/kcoreaddons dbus' \
+      'kde-frameworks/kwindowsystem X' \
+      'kde-frameworks/prison qml' \
+      'kde-plasma/plasma-workspace -fontconfig -handbook' \
+      'media-libs/libglvnd X' \
+      'media-libs/mesa llvm_slot_21' \
+      'sys-apps/accountsservice elogind' \
+      'sys-apps/dbus X' \
+      'sys-libs/minizip-ng compat' \
+      'sys-libs/zlib minizip' \
+      'x11-base/xwayland libei' \
+      'x11-libs/libxkbcommon X' \
+      > /etc/portage/package.use/latte-dock-ng
+
+# Prefer signed snapshots, but keep CI usable when the ephemeral keyserver refresh path is unavailable.
+RUN (emerge-webrsync --quiet || emerge-webrsync --quiet --no-pgp-verify) && \
+    emerge --oneshot --noreplace \
+      app-arch/zstd \
+      dev-libs/plasma-wayland-protocols \
+      dev-libs/wayland \
+      dev-qt/qtbase:6 \
+      dev-qt/qtdeclarative:6 \
+      dev-qt/qtwayland:6 \
+      dev-build/cmake \
+      dev-build/ninja \
+      kde-frameworks/extra-cmake-modules \
+      kde-frameworks/karchive:6 \
+      kde-frameworks/kcmutils:6 \
+      kde-frameworks/kconfig:6 \
+      kde-frameworks/kcoreaddons:6 \
+      kde-frameworks/kcrash:6 \
+      kde-frameworks/kdbusaddons:6 \
+      kde-frameworks/kdeclarative:6 \
+      kde-frameworks/kglobalaccel:6 \
+      kde-frameworks/kguiaddons:6 \
+      kde-frameworks/ki18n:6 \
+      kde-frameworks/kiconthemes:6 \
+      kde-frameworks/kio:6 \
+      kde-frameworks/kirigami:6 \
+      kde-frameworks/kitemmodels:6 \
+      kde-frameworks/knewstuff:6 \
+      kde-frameworks/knotifications:6 \
+      kde-frameworks/kpackage:6 \
+      kde-frameworks/ksvg:6 \
+      kde-frameworks/kwindowsystem:6 \
+      kde-frameworks/kxmlgui:6 \
+      kde-plasma/kpipewire:6
+
+# kscreenlocker ships ScreenSaverDBusInterfaceConfig.cmake, but current Gentoo
+# plasma-workspace can configure before that binpkg lands when both are in one
+# Portage transaction. Seed the binpkg in its own layer, then let the next
+# emerge resolve the full dependency graph normally.
+RUN emerge --oneshot --noreplace --usepkgonly --nodeps \
+      kde-plasma/kscreenlocker:6
+
+RUN emerge --oneshot --noreplace \
+      kde-plasma/kwayland:6 \
+      kde-plasma/layer-shell-qt:6 \
+      kde-plasma/libplasma:6 \
+      kde-plasma/plasma-activities:6 \
+      kde-plasma/plasma-activities-stats:6 \
+      kde-plasma/plasma-workspace:6 \
+      virtual/pkgconfig && \
+    rm -rf /var/cache/distfiles/* /var/cache/binpkgs/*

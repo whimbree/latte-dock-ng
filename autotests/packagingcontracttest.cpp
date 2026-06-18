@@ -46,6 +46,8 @@ void PackagingContractTest::distroInstallPackagingContractsStayInSync()
     const QString dockerSource = QString::fromUtf8(dockerCompose.readAll());
     QVERIFY(dockerSource.contains(QStringLiteral("${LATTE_SRC:-..}:/src:ro")));
     QVERIFY(dockerSource.contains(QStringLiteral("bash /src/docker/verify-install.sh")));
+    QVERIFY(dockerSource.contains(QStringLiteral("dockerfile: Dockerfile.gentoo")));
+    QVERIFY(dockerSource.contains(QStringLiteral("bash /src/docker/verify-ebuild-gentoo.sh")));
     QVERIFY(!dockerSource.contains(QStringLiteral("/data/projects/latte-dock-ng:/src:ro")));
 
     QFile dockerVerify(QStringLiteral(LATTE_SOURCE_DIR "/docker/verify-install.sh"));
@@ -66,6 +68,68 @@ void PackagingContractTest::distroInstallPackagingContractsStayInSync()
     QVERIFY(archDockerfile.open(QFile::ReadOnly));
     const QString archDockerfileSource = QString::fromUtf8(archDockerfile.readAll());
     QVERIFY(archDockerfileSource.contains(QStringLiteral("zstd")));
+
+    QFile gentooDockerfile(QStringLiteral(LATTE_SOURCE_DIR "/docker/Dockerfile.gentoo"));
+    QVERIFY(gentooDockerfile.open(QFile::ReadOnly));
+    const QString gentooDockerfileSource = QString::fromUtf8(gentooDockerfile.readAll());
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("gentoo/stage3")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("ARG USE_MIRRORS=true")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("GENTOO_MIRRORS=")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("binrepos.conf")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("GENTOO_BINHOST_URI_CN")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("rm -f /etc/portage/binrepos.conf/")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("emerge-webrsync --quiet || emerge-webrsync --quiet --no-pgp-verify")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("FEATURES=\"getbinpkg -usersandbox -network-sandbox -pid-sandbox -ipc-sandbox\"")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("--getbinpkg --usepkg --binpkg-respect-use=y")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("--autounmask-write=y --autounmask-continue=y")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("USE=\"X cups dbus elogind gui opengl qml wayland widgets\"")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("LLVM_SLOT=\"21\"")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("package.use/latte-dock-ng")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("app-text/xmlto text")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qt5compat icu qml")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qtbase cups icu libproxy opengl wayland")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qtdeclarative opengl")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qtlocation opengl")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qtmultimedia opengl")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qtquick3d opengl")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-qt/qttools opengl")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("emerge --oneshot --noreplace")));
+    QVERIFY(!gentooDockerfileSource.contains(QStringLiteral("ACCEPT_KEYWORDS=\"~amd64\"")));
+    QVERIFY(!gentooDockerfileSource.contains(QStringLiteral("emerge --update --newuse --deep")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("kde-frameworks/kcoreaddons dbus")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("kde-plasma/plasma-workspace -fontconfig -handbook")));
+    QVERIFY(!gentooDockerfileSource.contains(QStringLiteral("kde-plasma/plasma-workspace -fontconfig -handbook -X")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("media-libs/libglvnd X")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("media-libs/mesa llvm_slot_21")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("sys-libs/minizip-ng compat")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("sys-libs/zlib minizip")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("sys-apps/dbus X")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("sys-apps/accountsservice elogind")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("x11-libs/libxkbcommon X")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("x11-base/xwayland libei")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("extra-cmake-modules")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("emerge --oneshot --noreplace --usepkgonly --nodeps \\\n      kde-plasma/kscreenlocker:6")));
+    const int kscreenlockerPreinstall = gentooDockerfileSource.indexOf(QStringLiteral("emerge --oneshot --noreplace --usepkgonly --nodeps"));
+    const int plasmaWorkspaceInstall = gentooDockerfileSource.indexOf(QStringLiteral("kde-plasma/plasma-workspace:6"));
+    QVERIFY(kscreenlockerPreinstall >= 0);
+    QVERIFY(plasmaWorkspaceInstall > kscreenlockerPreinstall);
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("emerge --oneshot --noreplace \\\n      kde-plasma/kwayland:6")));
+    QVERIFY(!gentooDockerfileSource.contains(QStringLiteral("sys-devel/gcc")));
+
+    QFile gentooEbuildVerify(QStringLiteral(LATTE_SOURCE_DIR "/docker/verify-ebuild-gentoo.sh"));
+    QVERIFY(gentooEbuildVerify.open(QFile::ReadOnly));
+    const QString gentooEbuildVerifySource = QString::fromUtf8(gentooEbuildVerify.readAll());
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("latte-dock-ng-${version}.ebuild")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("ebuild")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral(">=kde-plasma/kscreenlocker-6.5:6")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("clean configure compile install")));
+
+    QFile releaseWorkflow(QStringLiteral(LATTE_SOURCE_DIR "/.github/workflows/release.yml"));
+    QVERIFY(releaseWorkflow.open(QFile::ReadOnly));
+    const QString releaseWorkflowSource = QString::fromUtf8(releaseWorkflow.readAll());
+    QVERIFY(releaseWorkflowSource.contains(QStringLiteral("gentoo-ebuild:")));
+    QVERIFY(releaseWorkflowSource.contains(QStringLiteral("Dockerfile.gentoo")));
+    QVERIFY(releaseWorkflowSource.contains(QStringLiteral("verify-ebuild-gentoo.sh")));
 
     QFile packagingCMake(QStringLiteral(LATTE_SOURCE_DIR "/cmake/LattePackaging.cmake"));
     QVERIFY(packagingCMake.open(QFile::ReadOnly));

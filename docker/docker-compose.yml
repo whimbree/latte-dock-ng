@@ -47,3 +47,10 @@ services:
       context: .
       dockerfile: Dockerfile.debian
     command: bash /src/docker/verify-install.sh DEBIAN
+
+  gentoo:
+    <<: *latte-verify
+    build:
+      context: .
+      dockerfile: Dockerfile.gentoo
+    command: bash /src/docker/verify-ebuild-gentoo.sh
