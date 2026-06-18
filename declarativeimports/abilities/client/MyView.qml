@@ -34,6 +34,7 @@ AbilityDefinition.MyView {
     badgesIn3DStyle: ref.myView.badgesIn3DStyle
 
     alignment: ref.myView.alignment
+    itemsAlignment: ref.myView.itemsAlignment
     visibilityMode: ref.myView.visibilityMode
 
     backgroundOpacity: ref.myView.backgroundOpacity

@@ -323,6 +323,97 @@ PlasmaComponents.Page {
         }
         //! END: Alignment
 
+        //! BEGIN: Items Alignment
+        ColumnLayout {
+            Layout.fillWidth: true
+            enabled: alignmentRow.currentAlignment === LatteCore.types.Justify
+            opacity: enabled ? 1 : 0.45
+            spacing: units.smallSpacing
+
+            LatteComponents.Header {
+                text: i18n("Items alignment")
+            }
+
+            RowLayout {
+                id: itemsAlignmentRow
+                Layout.fillWidth: true
+                Layout.leftMargin: units.smallSpacing * 2
+                Layout.rightMargin: units.smallSpacing * 2
+                LayoutMirroring.enabled: false
+                spacing: 2
+
+                readonly property int currentItemsAlignment: normalizedItemsAlignment(plasmoid.configuration.itemsAlignment)
+                readonly property int buttonSize: (dialog.optionsWidth - (spacing * 2)) / 3
+
+                function normalizedItemsAlignment(alignment) {
+                    if (alignment === LatteCore.types.Center) {
+                        return alignment;
+                    }
+
+                    if (panelIsVertical) {
+                        return alignment === LatteCore.types.Top || alignment === LatteCore.types.Bottom ? alignment : LatteCore.types.Center;
+                    }
+
+                    return alignment === LatteCore.types.Left || alignment === LatteCore.types.Right ? alignment : LatteCore.types.Center;
+                }
+
+                function applyItemsAlignment(alignment) {
+                    if (plasmoid.configuration.itemsAlignment !== alignment) {
+                        plasmoid.configuration.itemsAlignment = alignment;
+                    }
+                }
+
+                LatteComponents.Button {
+                    Layout.minimumWidth: parent.buttonSize
+                    Layout.maximumWidth: Layout.minimumWidth
+                    text: panelIsVertical ? i18nc("top items alignment", "Top") : i18nc("left items alignment", "Left")
+                    icon.name: panelIsVertical ? "format-align-vertical-top" : "format-justify-left"
+                    checked: parent.currentItemsAlignment === alignment
+                    checkable: true
+
+                    property int alignment: panelIsVertical ? LatteCore.types.Top : LatteCore.types.Left
+
+                    onClicked: {
+                        parent.applyItemsAlignment(alignment)
+                        checked = Qt.binding(function() { return parent.currentItemsAlignment === alignment })
+                    }
+                }
+
+                LatteComponents.Button {
+                    Layout.minimumWidth: parent.buttonSize
+                    Layout.maximumWidth: Layout.minimumWidth
+                    text: i18nc("center items alignment", "Center")
+                    icon.name: panelIsVertical ? "format-align-vertical-center" : "format-justify-center"
+                    checked: parent.currentItemsAlignment === alignment
+                    checkable: true
+
+                    property int alignment: LatteCore.types.Center
+
+                    onClicked: {
+                        parent.applyItemsAlignment(alignment)
+                        checked = Qt.binding(function() { return parent.currentItemsAlignment === alignment })
+                    }
+                }
+
+                LatteComponents.Button {
+                    Layout.minimumWidth: parent.buttonSize
+                    Layout.maximumWidth: Layout.minimumWidth
+                    text: panelIsVertical ? i18nc("bottom items alignment", "Bottom") : i18nc("right items alignment", "Right")
+                    icon.name: panelIsVertical ? "format-align-vertical-bottom" : "format-justify-right"
+                    checked: parent.currentItemsAlignment === alignment
+                    checkable: true
+
+                    property int alignment: panelIsVertical ? LatteCore.types.Bottom : LatteCore.types.Right
+
+                    onClicked: {
+                        parent.applyItemsAlignment(alignment)
+                        checked = Qt.binding(function() { return parent.currentItemsAlignment === alignment })
+                    }
+                }
+            }
+        }
+        //! END: Items Alignment
+
         //! BEGIN: Visibility
         ColumnLayout {
             Layout.fillWidth: true

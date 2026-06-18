@@ -17,6 +17,23 @@ AbilityDefinition.Containment {
     property int appletIndex: -1
     property Item myView: null
 
+    readonly property int effectiveItemsAlignment: !myView ? LatteCore.types.Center
+                                                           : myView.alignment === LatteCore.types.Justify
+                                                             ? normalizedItemsAlignment(myView.itemsAlignment)
+                                                             : myView.alignment
+
+    function normalizedItemsAlignment(alignment) {
+        if (alignment === LatteCore.types.Center) {
+            return alignment;
+        }
+
+        if (plasmoid.formFactor === PlasmaCore.Types.Vertical) {
+            return alignment === LatteCore.types.Top || alignment === LatteCore.types.Bottom ? alignment : LatteCore.types.Center;
+        }
+
+        return alignment === LatteCore.types.Left || alignment === LatteCore.types.Right ? alignment : LatteCore.types.Center;
+    }
+
     alignment: {
         if (!myView) {
             return LatteCore.types.Center;
@@ -24,14 +41,14 @@ AbilityDefinition.Containment {
 
         if (myView.alignment === LatteCore.types.Justify) {
             if (appletIndex>=0 && appletIndex<100) {
-                return plasmoid.formFactor === PlasmaCore.Types.Horizontal ? LatteCore.types.Left : LatteCore.types.Top;
+                return effectiveItemsAlignment;
             } else if (appletIndex>=100 && appletIndex<200) {
-                return LatteCore.types.Center;
+                return effectiveItemsAlignment;
             } else if (appletIndex>=200) {
-                return plasmoid.formFactor === PlasmaCore.Types.Horizontal ? LatteCore.types.Right : LatteCore.types.Bottom;
+                return effectiveItemsAlignment;
             }
 
-            return LatteCore.types.Center;
+            return effectiveItemsAlignment;
         }
 
         return myView.alignment;

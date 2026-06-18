@@ -28,6 +28,7 @@ private Q_SLOTS:
     void parabolicAnimationRecoveryKeepsZoomStateBounded();
     void launcherRestoreCoversGeometryTransitionSettling();
     void sessionShutdownHandlingMatchesStableWaylandPath();
+    void itemsAlignmentIsSeparateAndJustifyOnly();
 };
 
 void QmlSmokeTest::latteCoreQmlPluginLoadsFromBuildTree()
@@ -258,6 +259,55 @@ void QmlSmokeTest::sessionShutdownHandlingMatchesStableWaylandPath()
     QVERIFY(coronaSource.contains(QStringLiteral("qApp->property(\"latte_session_ending\").toBool()")));
     QVERIFY(coronaSource.contains(QStringLiteral("m_layoutsManager->synchronizer()->hideAllViews();")));
     QVERIFY(coronaSource.contains(QStringLiteral("fast shutdown path for session logout")));
+}
+
+void QmlSmokeTest::itemsAlignmentIsSeparateAndJustifyOnly()
+{
+    QFile config(QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/config/main.xml"));
+    QVERIFY(config.open(QFile::ReadOnly));
+    const QString configSource = QString::fromUtf8(config.readAll());
+    QVERIFY(configSource.contains(QStringLiteral("<entry name=\"itemsAlignment\" type=\"Int\">")));
+    QVERIFY(configSource.contains(QStringLiteral("dock icons/items alignment used only when alignment is Justify")));
+
+    QFile myViewDefinition(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/definition/MyView.qml"));
+    QVERIFY(myViewDefinition.open(QFile::ReadOnly));
+    const QString myViewDefinitionSource = QString::fromUtf8(myViewDefinition.readAll());
+    QVERIFY(myViewDefinitionSource.contains(QStringLiteral("property int itemsAlignment: LatteCore.types.Center")));
+
+    QFile myViewHost(QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/ui/abilities/MyView.qml"));
+    QVERIFY(myViewHost.open(QFile::ReadOnly));
+    const QString myViewHostSource = QString::fromUtf8(myViewHost.readAll());
+    QVERIFY(myViewHostSource.contains(QStringLiteral("itemsAlignment: plasmoid.configuration.itemsAlignment")));
+
+    QFile containmentHost(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/host/Containment.qml"));
+    QVERIFY(containmentHost.open(QFile::ReadOnly));
+    const QString containmentHostSource = QString::fromUtf8(containmentHost.readAll());
+    QVERIFY(containmentHostSource.contains(QStringLiteral("readonly property int effectiveItemsAlignment: !myView ? LatteCore.types.Center")));
+    QVERIFY(containmentHostSource.contains(QStringLiteral(": myView.alignment === LatteCore.types.Justify")));
+    QVERIFY(containmentHostSource.contains(QStringLiteral("? normalizedItemsAlignment(myView.itemsAlignment)")));
+    QVERIFY(containmentHostSource.contains(QStringLiteral(": myView.alignment")));
+    QVERIFY(containmentHostSource.contains(QStringLiteral("function normalizedItemsAlignment(alignment)")));
+
+    QFile behavior(QStringLiteral(LATTE_SOURCE_DIR "/shell/package/contents/configuration/pages/BehaviorConfig.qml"));
+    QVERIFY(behavior.open(QFile::ReadOnly));
+    const QString behaviorSource = QString::fromUtf8(behavior.readAll());
+    QVERIFY(behaviorSource.contains(QStringLiteral("text: i18n(\"Items alignment\")")));
+    QVERIFY(behaviorSource.contains(QStringLiteral("enabled: alignmentRow.currentAlignment === LatteCore.types.Justify")));
+    QVERIFY(behaviorSource.contains(QStringLiteral("readonly property int currentItemsAlignment: normalizedItemsAlignment(plasmoid.configuration.itemsAlignment)")));
+    QVERIFY(behaviorSource.contains(QStringLiteral("plasmoid.configuration.itemsAlignment = alignment")));
+
+    QFile layoutsContainer(QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/ui/layouts/LayoutsContainer.qml"));
+    QVERIFY(layoutsContainer.open(QFile::ReadOnly));
+    const QString layoutsSource = QString::fromUtf8(layoutsContainer.readAll());
+    QVERIFY(layoutsSource.contains(QStringLiteral("readonly property int effectiveItemsAlignment: root.myView.alignment === LatteCore.types.Justify")));
+    QVERIFY(layoutsSource.contains(QStringLiteral("? normalizedItemsAlignment(root.myView.itemsAlignment)")));
+    QVERIFY(layoutsSource.contains(QStringLiteral(": root.myView.alignment")));
+    QVERIFY(layoutsSource.contains(QStringLiteral("function normalizedItemsAlignment(alignment)")));
+
+    QFile scrollableList(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/taskslayout/ScrollableList.qml"));
+    QVERIFY(scrollableList.open(QFile::ReadOnly));
+    const QString scrollableSource = QString::fromUtf8(scrollableList.readAll());
+    QVERIFY(scrollableSource.contains(QStringLiteral("readonly property bool centered: root.alignment === LatteCore.types.Center")));
 }
 
 QTEST_MAIN(QmlSmokeTest)

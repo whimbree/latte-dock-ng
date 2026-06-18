@@ -9,6 +9,10 @@
       <default>0</default>
       <label>introduced in v0.10, "0" stands for "Center"</label>      
     </entry>      
+    <entry name="itemsAlignment" type="Int">
+      <default>0</default>
+      <label>dock icons/items alignment used only when alignment is Justify</label>
+    </entry>
     <entry name="dockStyle" type="Enum">
       <choices>
             <choice name="Classic"/>

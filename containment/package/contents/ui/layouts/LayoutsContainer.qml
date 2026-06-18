@@ -108,6 +108,9 @@ Item{
 
     property bool animationSent: false
     property bool shouldCheckHalfs: (plasmoid.configuration.alignment === LatteCore.types.Justify) && (_mainLayout.children>1)
+    readonly property int effectiveItemsAlignment: root.myView.alignment === LatteCore.types.Justify
+                                                  ? normalizedItemsAlignment(root.myView.itemsAlignment)
+                                                  : root.myView.alignment
 
     property int contentsWidth: root.isHorizontal ? _startLayout.width + _mainLayout.width + _endLayout.width :
                                                     Math.max(_startLayout.width, _mainLayout.width ,_endLayout.width)
@@ -248,6 +251,18 @@ Item{
     onXChanged: root.updateEffectsArea();
     onYChanged: root.updateEffectsArea();
 
+    function normalizedItemsAlignment(alignment) {
+        if (alignment === LatteCore.types.Center) {
+            return alignment;
+        }
+
+        if (root.isVertical) {
+            return alignment === LatteCore.types.Top || alignment === LatteCore.types.Bottom ? alignment : LatteCore.types.Center;
+        }
+
+        return alignment === LatteCore.types.Left || alignment === LatteCore.types.Right ? alignment : LatteCore.types.Center;
+    }
+
     function activateWheelTask(next) {
         environmentActions.activateWheelTask(next);
     }
@@ -310,7 +325,8 @@ Item{
         readonly property alias startParabolicSpacer: _startParabolicSpacer
         readonly property alias endParabolicSpacer: _endParabolicSpacer
 
-        readonly property bool centered: (root.myView.alignment === LatteCore.types.Center) || (root.myView.alignment === LatteCore.types.Justify)
+        readonly property int effectiveItemsAlignment: layoutsContainer.effectiveItemsAlignment
+        readonly property bool centered: effectiveItemsAlignment === LatteCore.types.Center
         readonly property bool reversed: Qt.application.layoutDirection === Qt.RightToLeft
         readonly property real parabolicOffsetting: (startParabolicSpacer.length - endParabolicSpacer.length) / 2
         property int inJustifyCenterOffset: 0
@@ -318,26 +334,26 @@ Item{
         alignment: {
             if (plasmoid.location === PlasmaCore.Types.LeftEdge) {
                 if (centered) return LatteCore.types.LeftEdgeCenterAlign;
-                if (root.myView.alignment === LatteCore.types.Top) return LatteCore.types.LeftEdgeTopAlign;
-                if (root.myView.alignment === LatteCore.types.Bottom) return LatteCore.types.LeftEdgeBottomAlign;
+                if (effectiveItemsAlignment === LatteCore.types.Top) return LatteCore.types.LeftEdgeTopAlign;
+                if (effectiveItemsAlignment === LatteCore.types.Bottom) return LatteCore.types.LeftEdgeBottomAlign;
             }
 
             if (plasmoid.location === PlasmaCore.Types.RightEdge) {
                 if (centered) return LatteCore.types.RightEdgeCenterAlign;
-                if (root.myView.alignment === LatteCore.types.Top) return LatteCore.types.RightEdgeTopAlign;
-                if (root.myView.alignment === LatteCore.types.Bottom) return LatteCore.types.RightEdgeBottomAlign;
+                if (effectiveItemsAlignment === LatteCore.types.Top) return LatteCore.types.RightEdgeTopAlign;
+                if (effectiveItemsAlignment === LatteCore.types.Bottom) return LatteCore.types.RightEdgeBottomAlign;
             }
 
             if (plasmoid.location === PlasmaCore.Types.BottomEdge) {
                 if (centered) return LatteCore.types.BottomEdgeCenterAlign;
 
-                if ((root.myView.alignment === LatteCore.types.Left && !reversed)
-                        || (root.myView.alignment === LatteCore.types.Right && reversed)) {
+                if ((effectiveItemsAlignment === LatteCore.types.Left && !reversed)
+                        || (effectiveItemsAlignment === LatteCore.types.Right && reversed)) {
                     return LatteCore.types.BottomEdgeLeftAlign;
                 }
 
-                if ((root.myView.alignment === LatteCore.types.Right && !reversed)
-                        || (root.myView.alignment === LatteCore.types.Left && reversed)) {
+                if ((effectiveItemsAlignment === LatteCore.types.Right && !reversed)
+                        || (effectiveItemsAlignment === LatteCore.types.Left && reversed)) {
                     return LatteCore.types.BottomEdgeRightAlign;
                 }
             }
@@ -345,13 +361,13 @@ Item{
             if (plasmoid.location === PlasmaCore.Types.TopEdge) {
                 if (centered) return LatteCore.types.TopEdgeCenterAlign;
 
-                if ((root.myView.alignment === LatteCore.types.Left && !reversed)
-                        || (root.myView.alignment === LatteCore.types.Right && reversed)) {
+                if ((effectiveItemsAlignment === LatteCore.types.Left && !reversed)
+                        || (effectiveItemsAlignment === LatteCore.types.Right && reversed)) {
                     return LatteCore.types.TopEdgeLeftAlign;
                 }
 
-                if ((root.myView.alignment === LatteCore.types.Right && !reversed)
-                        || (root.myView.alignment === LatteCore.types.Left && reversed)) {
+                if ((effectiveItemsAlignment === LatteCore.types.Right && !reversed)
+                        || (effectiveItemsAlignment === LatteCore.types.Left && reversed)) {
                     return LatteCore.types.TopEdgeRightAlign;
                 }
             }
