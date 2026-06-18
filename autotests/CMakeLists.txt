@@ -194,6 +194,7 @@ target_compile_definitions(qmlsmoketest PRIVATE
     LATTE_CORE_QMLDIR="${CMAKE_SOURCE_DIR}/declarativeimports/core/qmldir"
     LATTE_CORE_PLUGIN="$<TARGET_FILE:lattecoreplugin>"
     LATTE_RESTORE_ANIMATION_QML="${CMAKE_SOURCE_DIR}/declarativeimports/abilities/items/basicitem/RestoreAnimation.qml"
+    LATTE_SHOW_WINDOW_ANIMATION_QML="${CMAKE_SOURCE_DIR}/plasmoid/package/contents/ui/task/animations/ShowWindowAnimation.qml"
 )
 
 target_link_libraries(qmlsmoketest

@@ -18,7 +18,6 @@ private Q_SLOTS:
     void latteTasksExposesPlasmaLauncherApi();
     void latteDockDbusExportsLauncherApi();
     void containmentClearsParabolicStateWhenEdgeChanges();
-    void taskWindowDoesNotKeepStaleFrozenZoom();
     void parabolicAnimationRecoveryKeepsZoomStateBounded();
     void launcherRestoreCoversGeometryTransitionSettling();
     void sessionShutdownHandlingMatchesStableWaylandPath();
@@ -28,6 +27,7 @@ private Q_SLOTS:
     void appearancePaletteExposesLayoutCustomColors();
     void layoutDetailsExposeCustomColorSchemeSelector();
     void restoreAnimationContractMovedToQmlSmokeTest();
+    void showWindowAnimationContractMovedToQmlSmokeTest();
     void autotestAggregateTargetDocumentsFullSuiteBuild();
     void coverageEstimateUsesReusableScript();
     void cmakeTargetResolutionUsesSharedHelpers();
@@ -144,17 +144,6 @@ void SourceContractTest::containmentClearsParabolicStateWhenEdgeChanges()
     QVERIFY(source.contains(QStringLiteral("function onLocationChanged() {\n            root.resetModernParabolicOffsets();")));
     QVERIFY(source.contains(QStringLiteral("function onFormFactorChanged() {\n            root.resetModernParabolicOffsets();")));
     QVERIFY(source.contains(QStringLiteral("function onShowingAfterRelocationFinished() {\n            root.resetModernParabolicOffsets();")));
-}
-
-void SourceContractTest::taskWindowDoesNotKeepStaleFrozenZoom()
-{
-    QFile showWindowAnimation(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/task/animations/ShowWindowAnimation.qml"));
-    QVERIFY(showWindowAnimation.open(QFile::ReadOnly));
-
-    const QString source = QString::fromUtf8(showWindowAnimation.readAll());
-    QVERIFY(source.contains(QStringLiteral("function keepFrozenZoomForCurrentTask()")));
-    QVERIFY(source.contains(QStringLiteral("taskItem.parabolicAreaIsCurrent || taskItem.parabolicAreaContainsMouse")));
-    QVERIFY(source.contains(QStringLiteral("taskItem.parabolicItem.zoom = keepFrozenZoomForCurrentTask() ? frozenTask.zoom : 1;")));
 }
 
 void SourceContractTest::parabolicAnimationRecoveryKeepsZoomStateBounded()
@@ -383,6 +372,22 @@ void SourceContractTest::restoreAnimationContractMovedToQmlSmokeTest()
     QVERIFY(sourceContracts.open(QFile::ReadOnly));
     const QString sourceContractSource = QString::fromUtf8(sourceContracts.readAll());
     const QString oldSourceLock = QStringLiteral("QFile ") + QStringLiteral("restoreAnimation");
+    QVERIFY(!sourceContractSource.contains(oldSourceLock));
+}
+
+void SourceContractTest::showWindowAnimationContractMovedToQmlSmokeTest()
+{
+    QFile qmlSmoke(QStringLiteral(LATTE_SOURCE_DIR "/autotests/qmlsmoketest.cpp"));
+    QVERIFY(qmlSmoke.open(QFile::ReadOnly));
+    const QString qmlSmokeSource = QString::fromUtf8(qmlSmoke.readAll());
+    QVERIFY(qmlSmokeSource.contains(QStringLiteral("showWindowAnimationFrozenZoomDecisionLoadsFromSource")));
+    QVERIFY(qmlSmokeSource.contains(QStringLiteral("LATTE_SHOW_WINDOW_ANIMATION_QML")));
+    QVERIFY(qmlSmokeSource.contains(QStringLiteral("keepFrozenZoomForCurrentTask")));
+
+    QFile sourceContracts(QStringLiteral(LATTE_SOURCE_DIR "/autotests/sourcecontracttest.cpp"));
+    QVERIFY(sourceContracts.open(QFile::ReadOnly));
+    const QString sourceContractSource = QString::fromUtf8(sourceContracts.readAll());
+    const QString oldSourceLock = QStringLiteral("QFile ") + QStringLiteral("showWindowAnimation");
     QVERIFY(!sourceContractSource.contains(oldSourceLock));
 }
 
