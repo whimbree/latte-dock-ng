@@ -34,6 +34,8 @@ private Q_SLOTS:
     void cmakeTargetResolutionHelpersLiveInModule();
     void cmakeOffscreenTestsUseSharedHelper();
     void cmakeAutotestRegistrationMaintainsAggregateTarget();
+    void cmakePackagingConfigLivesInModule();
+    void cmakeWarningRelaxationLivesInModule();
 };
 
 void SourceContractTest::pulseAudioBootstrapIsBounded()
@@ -496,6 +498,50 @@ void SourceContractTest::cmakeAutotestRegistrationMaintainsAggregateTarget()
     QVERIFY(cmakeSource.contains(QStringLiteral("DEPENDS ${latte_autotest_targets}")));
     QVERIFY(!cmakeSource.contains(QStringLiteral("add_test(NAME dataunittest COMMAND dataunittest)")));
     QVERIFY(!cmakeSource.contains(QStringLiteral("set(latte_autotest_targets\n    dataunittest")));
+}
+
+void SourceContractTest::cmakePackagingConfigLivesInModule()
+{
+    QFile module(QStringLiteral(LATTE_SOURCE_DIR "/cmake/LattePackaging.cmake"));
+    QVERIFY(module.open(QFile::ReadOnly));
+    const QString moduleSource = QString::fromUtf8(module.readAll());
+    QVERIFY(moduleSource.contains(QStringLiteral("set(CPACK_PACKAGE_NAME \"latte-dock-ng\")")));
+    QVERIFY(moduleSource.contains(QStringLiteral("set(CPACK_RPM_PACKAGE_REQUIRES \"kf6-kirigami, kf6-kcmutils, kf6-knewstuff\")")));
+    QVERIFY(moduleSource.contains(QStringLiteral("set(CPACK_DEBIAN_PACKAGE_DEPENDS \"qml6-module-org-kde-kirigami, qml6-module-org-kde-kcmutils, qml6-module-org-kde-newstuff\")")));
+    QVERIFY(moduleSource.contains(QStringLiteral("include(CPack)")));
+
+    QFile cmake(QStringLiteral(LATTE_SOURCE_DIR "/CMakeLists.txt"));
+    QVERIFY(cmake.open(QFile::ReadOnly));
+    const QString cmakeSource = QString::fromUtf8(cmake.readAll());
+    QVERIFY(cmakeSource.contains(QStringLiteral("include(LattePackaging)")));
+    QVERIFY(!cmakeSource.contains(QStringLiteral("set(CPACK_PACKAGE_NAME \"latte-dock-ng\")")));
+    QVERIFY(!cmakeSource.contains(QStringLiteral("set(CPACK_RPM_PACKAGE_REQUIRES")));
+    QVERIFY(!cmakeSource.contains(QStringLiteral("set(CPACK_DEBIAN_PACKAGE_DEPENDS")));
+
+    QFile testingGuide(QStringLiteral(LATTE_SOURCE_DIR "/docs/development-testing-guide.md"));
+    QVERIFY(testingGuide.open(QFile::ReadOnly));
+    const QString guideSource = QString::fromUtf8(testingGuide.readAll());
+    QVERIFY(guideSource.contains(QStringLiteral("CMake helper modules keep target resolution, compiler warning relaxation, and packaging metadata out of the top-level build file.")));
+}
+
+void SourceContractTest::cmakeWarningRelaxationLivesInModule()
+{
+    QFile module(QStringLiteral(LATTE_SOURCE_DIR "/cmake/LatteCompilerWarnings.cmake"));
+    QVERIFY(module.open(QFile::ReadOnly));
+    const QString moduleSource = QString::fromUtf8(module.readAll());
+    QVERIFY(moduleSource.contains(QStringLiteral("function(latte_apply_relaxed_warning_flags)")));
+    QVERIFY(moduleSource.contains(QStringLiteral("set(LATTE_RELAXED_WARNING_FLAGS")));
+    QVERIFY(moduleSource.contains(QStringLiteral("string(REPLACE \"${_latte_warning_flag}\" \"\" CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS}\")")));
+    QVERIFY(moduleSource.contains(QStringLiteral("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS}\" PARENT_SCOPE)")));
+    QVERIFY(moduleSource.contains(QStringLiteral("message(STATUS \"Latte relaxed warning flags pending cleanup: ${LATTE_RELAXED_WARNING_FLAGS}\")")));
+
+    QFile cmake(QStringLiteral(LATTE_SOURCE_DIR "/CMakeLists.txt"));
+    QVERIFY(cmake.open(QFile::ReadOnly));
+    const QString cmakeSource = QString::fromUtf8(cmake.readAll());
+    QVERIFY(cmakeSource.contains(QStringLiteral("include(LatteCompilerWarnings)")));
+    QVERIFY(cmakeSource.contains(QStringLiteral("latte_apply_relaxed_warning_flags()")));
+    QVERIFY(!cmakeSource.contains(QStringLiteral("set(LATTE_RELAXED_WARNING_FLAGS")));
+    QVERIFY(!cmakeSource.contains(QStringLiteral("foreach(_latte_warning_flag IN LISTS LATTE_RELAXED_WARNING_FLAGS)")));
 }
 
 QTEST_MAIN(SourceContractTest)

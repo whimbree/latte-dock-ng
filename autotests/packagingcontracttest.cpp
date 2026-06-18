@@ -67,11 +67,11 @@ void PackagingContractTest::distroInstallPackagingContractsStayInSync()
     const QString archDockerfileSource = QString::fromUtf8(archDockerfile.readAll());
     QVERIFY(archDockerfileSource.contains(QStringLiteral("zstd")));
 
-    QFile cmake(QStringLiteral(LATTE_SOURCE_DIR "/CMakeLists.txt"));
-    QVERIFY(cmake.open(QFile::ReadOnly));
-    const QString cmakeSource = QString::fromUtf8(cmake.readAll());
-    QVERIFY(cmakeSource.contains(QStringLiteral("kf6-kcmutils")));
-    QVERIFY(cmakeSource.contains(QStringLiteral("qml6-module-org-kde-kcmutils")));
+    QFile packagingCMake(QStringLiteral(LATTE_SOURCE_DIR "/cmake/LattePackaging.cmake"));
+    QVERIFY(packagingCMake.open(QFile::ReadOnly));
+    const QString packagingCMakeSource = QString::fromUtf8(packagingCMake.readAll());
+    QVERIFY(packagingCMakeSource.contains(QStringLiteral("kf6-kcmutils")));
+    QVERIFY(packagingCMakeSource.contains(QStringLiteral("qml6-module-org-kde-kcmutils")));
 }
 
 QTEST_MAIN(PackagingContractTest)
