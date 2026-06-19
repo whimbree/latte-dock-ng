@@ -126,10 +126,17 @@ void PackagingContractTest::distroInstallPackagingContractsStayInSync()
     QVERIFY(plasmaWorkspaceInstall > kscreenlockerPreinstall);
     QVERIFY(gentooDockerfileSource.contains(QStringLiteral("emerge --oneshot --noreplace \\\n      kde-plasma/kwayland:6")));
     QVERIFY(!gentooDockerfileSource.contains(QStringLiteral("sys-devel/gcc")));
+    QVERIFY(gentooDockerfileSource.contains(QStringLiteral("dev-vcs/git")));
 
     QFile gentooEbuildVerify(QStringLiteral(LATTE_SOURCE_DIR "/docker/verify-ebuild-gentoo.sh"));
     QVERIFY(gentooEbuildVerify.open(QFile::ReadOnly));
     const QString gentooEbuildVerifySource = QString::fromUtf8(gentooEbuildVerify.readAll());
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("version=\"${VERSION:-9999}\"")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("if [[ \"${version}\" == \"9999\" ]]")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("inherit ecm git-r3 xdg")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("EGIT_REPO_URI=\"https://github.com/ruizhi-lab/latte-dock-ng.git\"")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("EGIT_BRANCH=\"main\"")));
+    QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("PROPERTIES=\"live\"")));
     QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("latte-dock-ng-${version}.ebuild")));
     QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral("ebuild")));
     QVERIFY(gentooEbuildVerifySource.contains(QStringLiteral(">=kde-plasma/kscreenlocker-6.5:6")));

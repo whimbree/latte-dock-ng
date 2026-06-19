@@ -74,6 +74,7 @@ RUN (emerge-webrsync --quiet || emerge-webrsync --quiet --no-pgp-verify) && \
       dev-qt/qtbase:6 \
       dev-qt/qtdeclarative:6 \
       dev-qt/qtwayland:6 \
+      dev-vcs/git \
       dev-build/cmake \
       dev-build/ninja \
       kde-frameworks/extra-cmake-modules \

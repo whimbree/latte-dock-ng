@@ -2,15 +2,7 @@
 # Gentoo ebuild verification used by docker-compose and release CI.
 set -euo pipefail
 
-version="${VERSION:-}"
-if [[ -z "${version}" ]]; then
-    version="$(sed -n 's/^[[:space:]]*set(VERSION \([^)]*\)).*/\1/p' /src/CMakeLists.txt | head -n1)"
-fi
-
-if [[ -z "${version}" ]]; then
-    echo "Unable to determine Latte Dock NG version" >&2
-    exit 1
-fi
+version="${VERSION:-9999}"
 
 export CCACHE_DISABLE=1
 export PORTAGE_TMPDIR="${PORTAGE_TMPDIR:-/tmp/latte-portage-tmp}"
@@ -39,13 +31,27 @@ cat > "${package_dir}/metadata.xml" <<'EOF'
 </pkgmetadata>
 EOF
 
-if [[ "${GENTOO_VERIFY_FETCH_TAG:-false}" == "true" ]]; then
-    src_uri='https://github.com/ruizhi-lab/latte-dock-ng/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz'
+if [[ "${version}" == "9999" ]]; then
+    inherit_line="inherit ecm git-r3 xdg"
+    source_block='EGIT_REPO_URI="https://github.com/ruizhi-lab/latte-dock-ng.git"
+EGIT_BRANCH="main"'
+    keywords_line='KEYWORDS=""'
+    properties_line='PROPERTIES="live"'
+    git_bdepend=$'\tdev-vcs/git'
 else
-    tar --exclude-vcs --exclude='./build*' --exclude='./.cache' \
-        --transform "s#^#latte-dock-ng-${version}/#" \
-        -czf "${DISTDIR}/${dist_name}" -C /src .
-    src_uri="file://${DISTDIR}/${dist_name} -> "'${P}.tar.gz'
+    inherit_line="inherit ecm xdg"
+    keywords_line='KEYWORDS="~amd64"'
+    properties_line=""
+    git_bdepend=""
+
+    if [[ "${GENTOO_VERIFY_FETCH_TAG:-false}" == "true" ]]; then
+        source_block='SRC_URI="https://github.com/ruizhi-lab/latte-dock-ng/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"'
+    else
+        tar --exclude-vcs --exclude='./build*' --exclude='./.cache' \
+            --transform "s#^#latte-dock-ng-${version}/#" \
+            -czf "${DISTDIR}/${dist_name}" -C /src .
+        source_block='SRC_URI="file://'"${DISTDIR}/${dist_name}"' -> ${P}.tar.gz"'
+    fi
 fi
 
 cat > "${package_dir}/latte-dock-ng-${version}.ebuild" <<EOF
@@ -54,15 +60,16 @@ cat > "${package_dir}/latte-dock-ng-${version}.ebuild" <<EOF
 
 EAPI=8
 
-inherit ecm xdg
+${inherit_line}
 
 DESCRIPTION="Wayland-first Latte Dock NG for Plasma 6.5+"
 HOMEPAGE="https://github.com/ruizhi-lab/latte-dock-ng"
-SRC_URI="${src_uri}"
+${source_block}
 
 LICENSE="GPL-2+ GPL-3+ LGPL-2+ || ( LGPL-2.1 LGPL-3 )"
 SLOT="0"
-KEYWORDS="~amd64"
+${keywords_line}
+${properties_line}
 
 COMMON_DEPEND="
 	>=dev-libs/plasma-wayland-protocols-1.6
@@ -102,6 +109,7 @@ COMMON_DEPEND="
 RDEPEND="\${COMMON_DEPEND}"
 DEPEND="\${COMMON_DEPEND}"
 BDEPEND="
+${git_bdepend}
 	>=dev-qt/qtbase-6.6:6
 	>=kde-frameworks/extra-cmake-modules-6.0
 	virtual/pkgconfig
