@@ -40,6 +40,7 @@ private Q_SLOTS:
     void cmakeFindsQtCoreToolsBeforeKdeInstallDirs();
     void qtQuickGpuPreferenceKeepsSoftwareFallbackAvailable();
     void knsCompatImportsAreAvailableForSystemInstall();
+    void taskIconsRefreshAfterIconThemeChanges();
     void widgetExplorerLaunchesKnsDialogOutOfProcess();
     void widgetExplorerUsesPlasmaTranslationContexts();
 };
@@ -300,6 +301,31 @@ void SourceContractTest::knsCompatImportsAreAvailableForSystemInstall()
     QVERIFY(compatHeader.open(QFile::ReadOnly));
     const QString compatHeaderSource = QString::fromUtf8(compatHeader.readAll());
     QVERIFY(compatHeaderSource.contains(QStringLiteral("QString knsCompatUserQmlRoot();")));
+}
+
+void SourceContractTest::taskIconsRefreshAfterIconThemeChanges()
+{
+    QFile taskIcon(QStringLiteral(LATTE_SOURCE_DIR "/plasmoid/package/contents/ui/task/TaskIcon.qml"));
+    QVERIFY(taskIcon.open(QFile::ReadOnly));
+
+    const QString source = QString::fromUtf8(taskIcon.readAll());
+    QVERIFY(source.contains(QStringLiteral("function forceRefreshTaskIconSource()")));
+    QVERIFY(source.contains(QStringLiteral("taskIconItem.source = \"\"")));
+    QVERIFY(source.contains(QStringLiteral("Qt.callLater(resetTaskIconSourceBinding)")));
+
+    const int clearSource = source.indexOf(QStringLiteral("taskIconItem.source = \"\""));
+    const int delayedRebind = source.indexOf(QStringLiteral("Qt.callLater(resetTaskIconSourceBinding)"), clearSource);
+    QVERIFY(clearSource >= 0);
+    QVERIFY(delayedRebind > clearSource);
+
+    QFile environment(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/core/environment.cpp"));
+    QVERIFY(environment.open(QFile::ReadOnly));
+
+    const QString environmentSource = QString::fromUtf8(environment.readAll());
+    QVERIFY(environmentSource.contains(QStringLiteral("readEntry(QStringLiteral(\"Theme\"), QStringLiteral(\"breeze\"))")));
+    QVERIFY(environmentSource.contains(QStringLiteral("QIcon::setThemeName(currentIconTheme())")));
+    QVERIFY(environmentSource.contains(QStringLiteral("QPixmapCache::clear()")));
+    QVERIFY(!environmentSource.contains(QStringLiteral("if (!iconTheme.isEmpty())")));
 }
 
 void SourceContractTest::widgetExplorerLaunchesKnsDialogOutOfProcess()

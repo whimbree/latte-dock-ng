@@ -12,6 +12,7 @@
 #include <KSharedConfig>
 #include <QIcon>
 #include <QDebug>
+#include <QPixmapCache>
 #include <QStandardPaths>
 
 #define LONGDURATION 240
@@ -48,12 +49,10 @@ Environment::Environment(QObject *parent)
                 return;
             }
 
-            const QString iconTheme = currentIconTheme();
-            if (!iconTheme.isEmpty()) {
-                QIcon::setThemeName(iconTheme);
-            }
+            QIcon::setThemeName(currentIconTheme());
 
-            qDebug() << "Environment::kdeglobals changed => reconfigure icon loader";
+            QPixmapCache::clear();
+            qDebug() << "Environment::kdeglobals changed => reconfigure icon loader" << QIcon::themeName();
             KIconLoader::global()->reconfigure(QString());
             markIconThemeChanged();
         };
@@ -128,7 +127,7 @@ QString Environment::currentIconTheme() const
     KSharedConfigPtr kdeGlobals = KSharedConfig::openConfig(QStringLiteral("kdeglobals"));
     kdeGlobals->reparseConfiguration();
     KConfigGroup iconsGroup(kdeGlobals, QStringLiteral("Icons"));
-    return iconsGroup.readEntry(QStringLiteral("Theme"), QString());
+    return iconsGroup.readEntry(QStringLiteral("Theme"), QStringLiteral("breeze"));
 }
 
 void Environment::markIconThemeChanged()

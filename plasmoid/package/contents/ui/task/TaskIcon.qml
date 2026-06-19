@@ -34,7 +34,7 @@ Item {
 
     function forceRefreshTaskIconSource() {
         taskIconItem.source = "";
-        resetTaskIconSourceBinding();
+        Qt.callLater(resetTaskIconSourceBinding);
     }
 
     readonly property bool smartLauncherEnabled: (taskItem.isStartup === false) //! it needs to be enabled independent of user-set option because it is used from indicators
