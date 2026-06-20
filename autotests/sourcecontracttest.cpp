@@ -24,6 +24,7 @@ private Q_SLOTS:
     void itemsAlignmentNormalizesDirectionsByFormFactor();
     void itemsAlignmentConfigDefaultsToCenter();
     void appearancePaletteExposesLayoutCustomColors();
+    void modernDockBackgroundShadowDefaultIsCompact();
     void layoutDetailsExposeCustomColorSchemeSelector();
     void restoreAnimationContractMovedToQmlSmokeTest();
     void showWindowAnimationContractMovedToQmlSmokeTest();
@@ -618,6 +619,29 @@ void SourceContractTest::appearancePaletteExposesLayoutCustomColors()
     QVERIFY(colorizerSource.contains(QStringLiteral("root.themeColors === LatteContainment.types.LayoutThemeColors")));
     QVERIFY(colorizerSource.contains(QStringLiteral("latteView && latteView.layout && latteView.layout.scheme")));
     QVERIFY(colorizerSource.contains(QStringLiteral("return latteView.layout.scheme;")));
+}
+
+void SourceContractTest::modernDockBackgroundShadowDefaultIsCompact()
+{
+    QFile constantsFile(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/definition/metrics/Constants.qml"));
+    QVERIFY(constantsFile.open(QFile::ReadOnly));
+    const QString constantsSource = QString::fromUtf8(constantsFile.readAll());
+    QVERIFY(constantsSource.contains(QStringLiteral("kModernBackgroundShadowMinPixels: 6")));
+
+    QFile qmlDirFile(QStringLiteral(LATTE_SOURCE_DIR "/declarativeimports/abilities/definition/qmldir"));
+    QVERIFY(qmlDirFile.open(QFile::ReadOnly));
+    const QString qmlDirSource = QString::fromUtf8(qmlDirFile.readAll());
+    QVERIFY(qmlDirSource.contains(QStringLiteral("singleton MetricsConstants 0.1 metrics/Constants.qml")));
+
+    QFile backgroundFile(QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/ui/background/MultiLayered.qml"));
+    QVERIFY(backgroundFile.open(QFile::ReadOnly));
+    const QString backgroundSource = QString::fromUtf8(backgroundFile.readAll());
+    QVERIFY(backgroundSource.contains(QStringLiteral("import org.kde.latte.abilities.definition 0.1 as AbilityDefinition")));
+    QVERIFY(backgroundSource.contains(QStringLiteral("AbilityDefinition.MetricsConstants.kModernBackgroundShadowMinPixels")));
+    QVERIFY(backgroundSource.contains(QStringLiteral("if (modernDockStyle && customDefShadowIsEnabled) {\n            return AbilityDefinition.MetricsConstants.kModernBackgroundShadowMinPixels;\n        }")));
+    QVERIFY(backgroundSource.contains(QStringLiteral("return customShadow; //! Modern default")));
+    QVERIFY(!backgroundSource.contains(QStringLiteral("return Math.max(10, customShadow); //! Modern default")));
+    QVERIFY(!backgroundSource.contains(QStringLiteral("return Math.max(AbilityDefinition.MetricsConstants.kModernBackgroundShadowMinPixels, customShadow);")));
 }
 
 void SourceContractTest::layoutDetailsExposeCustomColorSchemeSelector()

@@ -16,6 +16,7 @@ import org.kde.kquickcontrolsaddons 2.0
 import org.kde.kirigami 2.0 as Kirigami
 
 import org.kde.latte.core 0.2 as LatteCore
+import org.kde.latte.abilities.definition 0.1 as AbilityDefinition
 
 import "../colorizer" as Colorizer
 
@@ -316,6 +317,10 @@ BackgroundProperties{
                     (plasmoid.configuration.backgroundRadius/100) * solidBackground.width
     }
     readonly property int customShadow: {
+        if (modernDockStyle && customDefShadowIsEnabled) {
+            return AbilityDefinition.MetricsConstants.kModernBackgroundShadowMinPixels;
+        }
+
         if (customDefShadowIsEnabled && themeExtendedBackground) {
             return themeExtendedBackground.shadowSize;
         }
@@ -585,7 +590,7 @@ BackgroundProperties{
                 if (customUserShadowIsEnabled) {
                     return customShadow; //! user explicitly set a shadow size
                 }
-                return Math.max(10, customShadow); //! Modern default
+                return customShadow; //! Modern default
             }
             return customShadowIsEnabled ? customShadow : 0;
         }

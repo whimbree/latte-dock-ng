@@ -8,6 +8,7 @@ Environment 0.1 Environment.qml
 Indexer 0.1 Indexer.qml
 Indicators 0.1 Indicators.qml
 Metrics 0.1 Metrics.qml
+singleton MetricsConstants 0.1 metrics/Constants.qml
 MyView 0.1 MyView.qml
 ParabolicEffect 0.1 ParabolicEffect.qml
 PositionShortcuts 0.1 PositionShortcuts.qml

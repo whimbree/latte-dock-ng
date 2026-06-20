@@ -41,6 +41,7 @@ QtObject {
     readonly property int   kPortionIconSizeMin: 16
 
     // --- shadow & outline ---
+    readonly property int   kModernBackgroundShadowMinPixels: 6
     readonly property real kShadowAlphaAddition: 0.336
     readonly property real kShadowOpacityDefault: 0.35
     readonly property real kOutlineOpacityDefault: 0.55
