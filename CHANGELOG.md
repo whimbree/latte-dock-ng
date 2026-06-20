@@ -2,6 +2,12 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.2.10] - 2026-06-21
+
+### Fixed
+- Session shutdown handling now stays alive when logout is cancelled while still quitting cleanly after blocking windows close during committed shutdown.
+- Modern dock background shadows now default to the same compact 6px effect as explicitly setting Appearance > Background > Shadow to 6px.
+
 ## [v1.2.9] - 2026-06-19
 
 ### Fixed
