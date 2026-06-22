@@ -2,6 +2,13 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.2.11] - 2026-06-23
+
+### Fixed
+- Fixed all-screens dock synchronization for widget removal, widget add, drag-and-drop widget placement, applet ordering, and launcher/menu-backed applets.
+- Fixed Wayland always-visible dock strut reservations so cloned docks reserve space on their own screen instead of affecting the primary screen.
+- Refined session shutdown handling so Latte quits after committed shutdown blockers close while still surviving cancelled logout attempts.
+
 ## [v1.2.10] - 2026-06-21
 
 ### Fixed
