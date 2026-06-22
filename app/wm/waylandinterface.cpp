@@ -128,10 +128,12 @@ public:
         }
 
         auto *layerWindow = LayerShellQt::Window::get(this);
-        // Screen association is handled by QWindow::setScreen() above (line 87).
-        // LayerShellQt::Window reads the screen from the underlying QWindow;
-        // calling setScreen() on the layer window is redundant and was removed
-        // from newer LayerShellQt versions.
+        // Bind the layer-shell surface to the same output as the backing QWindow.
+        // Relying only on QWindow::setScreen() can leave the compositor to place
+        // cloned strut surfaces on the primary output, stacking reservations there.
+        if (screen) {
+            layerWindow->setScreen(screen);
+        }
 
         LayerShellQt::Window::Anchors anchors;
         int exclusiveZone = 0;
