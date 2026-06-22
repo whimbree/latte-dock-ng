@@ -20,6 +20,7 @@ private Q_SLOTS:
     void latteDockDbusExportsLauncherApi();
     void plasmaKickerActionAddsLaunchersToLatteDock();
     void containmentClearsParabolicStateWhenEdgeChanges();
+    void duplicateInstanceExitsWithoutQGuiAppExit();
     void allScreensCloneAppletSyncContracts();
     void waylandStrutGhostWindowBindsLayerShellScreen();
     void launchersRestoreContractMovedToQmlSmokeTest();
@@ -190,6 +191,24 @@ void SourceContractTest::containmentClearsParabolicStateWhenEdgeChanges()
     QVERIFY(source.contains(QStringLiteral("function onShowingAfterRelocationFinished() {\n            root.resetModernParabolicOffsets();")));
 }
 
+void SourceContractTest::duplicateInstanceExitsWithoutQGuiAppExit()
+{
+    QFile mainSource(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(mainSource.open(QFile::ReadOnly));
+    const QString source = QString::fromUtf8(mainSource.readAll());
+
+    const int lockFail = source.indexOf(QStringLiteral("if (!lockFile.tryLock(timeout)) {"));
+    const int clearCache = source.indexOf(QStringLiteral("//! clear-cache option"), lockFail);
+    QVERIFY(lockFail >= 0);
+    QVERIFY(clearCache > lockFail);
+
+    const QString duplicateInstanceBlock = source.mid(lockFail, clearCache - lockFail);
+    QVERIFY(!duplicateInstanceBlock.contains(QStringLiteral("qGuiApp->exit();")));
+    QVERIFY(!duplicateInstanceBlock.contains(QStringLiteral("SharedQmlEngine")));
+    QVERIFY(duplicateInstanceBlock.contains(QStringLiteral("i18n(\"An instance is already running!, use --replace to restart Latte\")")));
+    QVERIFY(duplicateInstanceBlock.contains(QStringLiteral("return 0;")));
+}
+
 void SourceContractTest::allScreensCloneAppletSyncContracts()
 {
     QFile interfaceHeader(QStringLiteral(LATTE_SOURCE_DIR "/app/view/containmentinterface.h"));
@@ -326,9 +345,9 @@ void SourceContractTest::sessionShutdownHandlingMatchesStableWaylandPath()
     QVERIFY(!mainSource.contains(QStringLiteral("triggering quit() from poller")));
     QVERIFY(!mainSource.contains(QStringLiteral("plasma-shutdown is active; quitting committed session logout")));
 
-    const int sharedEngineDetach = mainSource.indexOf(QStringLiteral("s_sharedEngine->setParent(nullptr);"));
+    const int sharedEngineDetach = mainSource.indexOf(QStringLiteral("sharedEngine->setParent(nullptr);"));
     const int postExecDeferredDeleteFlush = mainSource.indexOf(QStringLiteral("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);"), sharedEngineDetach);
-    const int sharedEngineReset = mainSource.indexOf(QStringLiteral("s_sharedEngine.reset();"), sharedEngineDetach);
+    const int sharedEngineReset = mainSource.indexOf(QStringLiteral("sharedEngine.reset();"), sharedEngineDetach);
     const int mainReturn = mainSource.indexOf(QStringLiteral("return result;"), sharedEngineDetach);
     QVERIFY(sharedEngineDetach >= 0);
     QVERIFY(postExecDeferredDeleteFlush > sharedEngineDetach);

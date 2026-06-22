@@ -127,16 +127,6 @@ int main(int argc, char **argv)
     ensureKnsCompat();
     ensureKnsCompatQmlImportPaths();
 
-    //! Prime the Plasma global shared QML engine singleton early.
-    //! plasmashell creates a process-wide shared QQmlEngine via
-    //! SharedQmlEnginePrivate::engine() (a static weak_ptr).  When
-    //! KNSWidgets::Dialog later opens its internal QQuickWidget, the
-    //! engine singleton is already initialised and types resolved through
-    //! it take precedence, avoiding the incompatible AOT-compiled
-    //! DrawerHandle.qml path from libKirigamiTemplates.so.
-    static std::shared_ptr<PlasmaQuick::SharedQmlEngine> s_sharedEngine =
-        std::make_shared<PlasmaQuick::SharedQmlEngine>(&app);
-
     app.setWindowIcon(QIcon::fromTheme(QString::fromLatin1(Latte::App::ICONNAME)));
     //protect from closing app when changing to "alternative session" and back
     app.setQuitOnLastWindowClosed(false);
@@ -401,7 +391,6 @@ int main(int argc, char **argv)
                 QStringLiteral("addView"));
             msg.setArguments({(uint)0, parser.value(QStringLiteral("add-dock"))});
             QDBusConnection::sessionBus().call(msg);
-            qGuiApp->exit();
             return 0;
         } else if (importlayout) {
             validaction = true;
@@ -412,7 +401,6 @@ int main(int argc, char **argv)
                 QStringLiteral("importLayoutFile"));
             msg.setArguments({parser.value(QStringLiteral("import-layout")), suggestedname});
             QDBusConnection::sessionBus().call(msg);
-            qGuiApp->exit();
             return 0;
         } else if (enableautostart || disableautostart){
             validaction = true;
@@ -430,7 +418,6 @@ int main(int argc, char **argv)
             qInfo() << i18n("An instance is already running!, use --replace to restart Latte");
         }
 
-        qGuiApp->exit();
         return 0;
     }
 
@@ -519,6 +506,12 @@ int main(int argc, char **argv)
         qInstallMessageHandler(noMessageOutput);
     }
 
+    //! Prime the Plasma global shared QML engine singleton after one-instance
+    //! checks. Duplicate invocations only forward DBus actions and exit; they
+    //! must not create a shared engine that would need full app teardown.
+    std::shared_ptr<PlasmaQuick::SharedQmlEngine> sharedEngine =
+        std::make_shared<PlasmaQuick::SharedQmlEngine>(&app);
+
     int result;
     {
         Latte::Corona corona(defaultLayoutOnStartup, layoutNameOnStartup, addViewTemplateNameOnStartup, memoryUsage);
@@ -574,8 +567,8 @@ int main(int argc, char **argv)
     // destroyed.  Without this, ~QApplication() → deleteChildren() deletes
     // the SharedQmlEngine that is managed by a static shared_ptr, and the
     // subsequent shared_ptr destructor double-frees it.
-    if (s_sharedEngine) {
-        s_sharedEngine->setParent(nullptr);
+    if (sharedEngine) {
+        sharedEngine->setParent(nullptr);
     }
 
     // Drain any remaining DeferredDelete events.  The Corona destructor
@@ -589,7 +582,7 @@ int main(int argc, char **argv)
     // Destroy the shared engine while QApplication and QtGui globals are
     // still alive.  Leaving it to static destruction can crash when QQC2
     // popups owned by the engine tear down after QApplication has gone away.
-    s_sharedEngine.reset();
+    sharedEngine.reset();
 
     return result;
 }
