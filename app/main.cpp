@@ -66,7 +66,8 @@ inline void configureAboutData();
 inline void detectPlatform(int argc, char **argv);
 inline void filterDebugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 inline bool shouldUseUserLocalQmlImports(int argc, char **argv);
-inline void ensureUserLocalQmlImportPaths(int argc, char **argv);
+inline void collectUserLocalPaths(int argc, char **argv);
+inline void applyUserLocalPluginPaths();
 inline void ensureKdeSessionEnvironment();
 inline bool isKdeSessionShuttingDown();
 inline bool isPlasmaShutdownServiceActive();
@@ -88,7 +89,7 @@ int main(int argc, char **argv)
 
     QQuickWindow::setDefaultAlphaBuffer(true);
     configureQtQuickGraphicsPreference();
-    ensureUserLocalQmlImportPaths(argc, argv);
+    collectUserLocalPaths(argc, argv);
 
     qputenv("QT_WAYLAND_DISABLE_FIXED_POSITIONS", {});
     const bool qpaVariable = qEnvironmentVariableIsSet("QT_QPA_PLATFORM");
@@ -99,6 +100,7 @@ int main(int argc, char **argv)
     ensureKdeSessionEnvironment();
     QCoreApplication::setAttribute(Qt::AA_DisableSessionManager);
     QApplication app(argc, argv);
+    applyUserLocalPluginPaths();
     qunsetenv("QT_WAYLAND_DISABLE_FIXED_POSITIONS");
 
     if (!KWindowSystem::isPlatformWayland()) {
@@ -511,11 +513,8 @@ int main(int argc, char **argv)
     std::shared_ptr<PlasmaQuick::SharedQmlEngine> sharedEngine =
         std::make_shared<PlasmaQuick::SharedQmlEngine>(&app);
 
-    // Add KNS compat QML import path to the shared engine (scoped, not env var)
-    const QString knsQmlRoot = knsCompatUserQmlRoot();
-    if (!knsQmlRoot.isEmpty()) {
-        sharedEngine->engine()->addImportPath(knsQmlRoot);
-    }
+    // Add latte-dock QML import paths to the shared engine (engine-scoped, no env var leakage)
+    addLatteQmlImportPaths(sharedEngine->engine().get());
 
     int result;
     {
@@ -592,35 +591,6 @@ int main(int argc, char **argv)
     return result;
 }
 
-inline void prependEnvironmentPath(const char *envName, const QString &path)
-{
-    if (path.isEmpty()) {
-        return;
-    }
-
-    const QString normalizedPath = QFileInfo(path).canonicalFilePath();
-
-    if (normalizedPath.isEmpty()) {
-        return;
-    }
-
-    const QString existing = qEnvironmentVariable(envName);
-    const QChar separator = QDir::listSeparator();
-    const QStringList existingPaths = existing.split(separator, Qt::SkipEmptyParts);
-
-    if (existingPaths.contains(normalizedPath)) {
-        return;
-    }
-
-    if (existing.isEmpty()) {
-        qputenv(envName, normalizedPath.toUtf8());
-        return;
-    }
-
-    const QString updated = normalizedPath + separator + existing;
-    qputenv(envName, updated.toUtf8());
-}
-
 inline bool shouldUseUserLocalQmlImports(int argc, char **argv)
 {
     if (qEnvironmentVariableIntValue("LATTE_FORCE_USER_LOCAL_QML_IMPORTS") == 1) {
@@ -649,7 +619,39 @@ inline bool shouldUseUserLocalQmlImports(int argc, char **argv)
     return executable.startsWith(userLocalBinPrefix);
 }
 
-inline void ensureUserLocalQmlImportPaths(int argc, char **argv)
+// Collected at startup, applied to each engine via addLatteQmlImportPaths().
+static QStringList s_userLocalQmlPaths;
+static QStringList s_userLocalPluginPaths;
+
+const QStringList &userLocalQmlImportPaths()
+{
+    return s_userLocalQmlPaths;
+}
+
+void addLatteQmlImportPaths(QQmlEngine *engine)
+{
+    if (!engine) {
+        return;
+    }
+
+    const QStringList currentPaths = engine->importPathList();
+
+    for (const QString &path : s_userLocalQmlPaths) {
+        if (!currentPaths.contains(path)) {
+            engine->addImportPath(path);
+        }
+    }
+
+    const QString knsRoot = knsCompatUserQmlRoot();
+    if (!knsRoot.isEmpty() && !currentPaths.contains(knsRoot)) {
+        engine->addImportPath(knsRoot);
+    }
+}
+
+// Collect user-local QML and plugin paths at startup without modifying
+// environment variables.  The paths are later applied per-engine via
+// addLatteQmlImportPaths() and per-process via QCoreApplication::addLibraryPath().
+inline void collectUserLocalPaths(int argc, char **argv)
 {
     if (!shouldUseUserLocalQmlImports(argc, argv)) {
         return;
@@ -677,15 +679,9 @@ inline void ensureUserLocalQmlImportPaths(int argc, char **argv)
     addQmlCandidate(userLocalPath + QStringLiteral("/lib/x86_64-linux-gnu/qt6/qml"));
 
     for (const QString &candidate : qmlCandidates) {
-        const QFileInfo info(candidate);
-
-        if (!info.exists() || !info.isDir()) {
-            continue;
+        if (QFileInfo::exists(candidate)) {
+            s_userLocalQmlPaths << candidate;
         }
-
-        prependEnvironmentPath("QML2_IMPORT_PATH", candidate);
-        prependEnvironmentPath("QML_IMPORT_PATH", candidate);
-        prependEnvironmentPath("QT_QML_IMPORT_PATH", candidate);
     }
 
     // Containmentactions plugins (e.g. org.kde.latte.contextmenu) are .so
@@ -693,7 +689,8 @@ inline void ensureUserLocalQmlImportPaths(int argc, char **argv)
     // user-local install puts them in ~/.local/lib*/plugins, which Qt
     // doesn't search by default — so Plasma's PluginLoader silently falls
     // back to the system .so (or fails to find anything) and right-click
-    // on the dock loses its menu. Prepend the user-local plugin dirs.
+    // on the dock loses its menu. Add the user-local plugin dirs via
+    // QCoreApplication::addLibraryPath() instead of env vars.
     const QStringList pluginCandidates{
         userLocalPath + QStringLiteral("/lib/plugins"),
         userLocalPath + QStringLiteral("/lib64/plugins"),
@@ -701,13 +698,20 @@ inline void ensureUserLocalQmlImportPaths(int argc, char **argv)
     };
 
     for (const QString &candidate : pluginCandidates) {
-        const QFileInfo info(candidate);
-
-        if (!info.exists() || !info.isDir()) {
-            continue;
+        if (QFileInfo::exists(candidate)) {
+            s_userLocalPluginPaths << candidate;
         }
+    }
+}
 
-        prependEnvironmentPath("QT_PLUGIN_PATH", candidate);
+// Apply user-local plugin paths via QCoreApplication::addLibraryPath().
+// Must be called after QApplication is created.  Unlike the old env var
+// approach (QT_PLUGIN_PATH via qputenv), this does not leak to child
+// processes.
+inline void applyUserLocalPluginPaths()
+{
+    for (const QString &path : s_userLocalPluginPaths) {
+        QCoreApplication::addLibraryPath(path);
     }
 }
 

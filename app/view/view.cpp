@@ -244,11 +244,7 @@ View::View(Plasma::Corona *corona, QScreen *targetScreen)
         connect(m_corona, &Latte::Corona::viewLocationChanged, this, &View::dockLocationChanged);
     }
 
-    // Add KNS compat QML import path to this view's engine (scoped, not env var).
-    const QString knsQmlRoot = knsCompatUserQmlRoot();
-    if (!knsQmlRoot.isEmpty() && !engine()->importPathList().contains(knsQmlRoot)) {
-        engine()->addImportPath(knsQmlRoot);
-    }
+    addLatteQmlImportPaths(engine().get());
 }
 
 View::~View()

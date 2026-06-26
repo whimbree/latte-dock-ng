@@ -79,10 +79,7 @@ void InfoView::init()
 {
     rootContext()->setContextProperty(QStringLiteral("infoWindow"), this);
 
-    const QString knsQmlRoot = knsCompatUserQmlRoot();
-    if (!knsQmlRoot.isEmpty() && !engine()->importPathList().contains(knsQmlRoot)) {
-        engine()->addImportPath(knsQmlRoot);
-    }
+    addLatteQmlImportPaths(engine());
 
     KDeclarative::KDeclarative kdeclarative;
     kdeclarative.setDeclarativeEngine(engine());

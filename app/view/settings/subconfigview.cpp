@@ -126,10 +126,7 @@ void SubConfigView::init()
 {
     qDebug() << validTitle() << " : initialization started...";
 
-    const QString knsQmlRoot = knsCompatUserQmlRoot();
-    if (!knsQmlRoot.isEmpty() && !engine()->importPathList().contains(knsQmlRoot)) {
-        engine()->addImportPath(knsQmlRoot);
-    }
+    addLatteQmlImportPaths(engine());
 
     setDefaultAlphaBuffer(true);
     setColor(Qt::transparent);
