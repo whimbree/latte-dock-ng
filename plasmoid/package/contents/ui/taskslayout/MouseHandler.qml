@@ -253,6 +253,25 @@ Item {
             return;
         }
 
+        var sourceIsLauncher = isLauncherTask(sourceItem);
+        var targetTask = above ? above : (target.childAtIndex ? target.childAtIndex(insertAt) : null);
+        var targetIsLauncher = isLauncherTask(targetTask);
+
+        // Auto-pin: dragging a non-pinned task into the launcher area
+        // promotes it to a launcher first, then moves it.
+        if (!sourceIsLauncher && targetTask && targetIsLauncher) {
+            var launcherUrl = launcherUrlForTask(sourceItem);
+            if (launcherUrl.length > 0) {
+                if (tasksModel.launcherPosition(launcherUrl) === -1) {
+                    appletAbilities.launchers.addLauncher(launcherUrl);
+                }
+                schedulePromoteToLauncherAndMove(sourceItem, insertAt, launcherUrl);
+                ignoredItem = targetTask;
+                ignoreItemTimer.restart();
+                return;
+            }
+        }
+
         sourceItem.z = 100;
         ignoredItem = above;
 
