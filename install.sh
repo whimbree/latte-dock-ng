@@ -449,15 +449,17 @@ Info: User-local installation complete.
 Info: Binary:   ${install_prefix}/bin/latte-dock-ng
 Info: QML path: ${kde_install_qmldir}
 
-To run latte-dock-ng from this install, set the QML import path first:
+To run latte-dock-ng, execute directly:
 
-  source ${env_file}
-  latte-dock-ng
+  ${install_prefix}/bin/latte-dock-ng --replace
 
-Or add it permanently to your shell config:
+No environment variables are needed — latte-dock-ng auto-detects
+its install location and sets up QML import paths internally.
 
-  echo 'source ${env_file}' >> ~/.bashrc    # bash
-  echo 'source ${env_file}' >> ~/.zshrc     # zsh
+The file below is for development only (overrides system QML with
+locally-built modules for debugging).  Do NOT add it to shell config.
+
+  source ${env_file}  # development/debug only
 
 EOF
 else
