@@ -364,6 +364,23 @@ for user_home in "${user_homes[@]:-}"; do
     remove_user_local_launcher_link "$user_home"
     remove_user_stale_launchers "$user_home"
 
+    # Clean KNS compat QML overrides — both the current private directory
+    # and the old shared paths that could crash other Qt applications
+    # (e.g. systemsettings). See commit 8e7cbbd66.
+    remove_tree "${user_home}/.local/share/latte-dock-ng/qml-kns-compat"
+    remove_file "${user_home}/.local/share/latte-dock-ng/kns-compat.stamp"
+    remove_dir_if_empty "${user_home}/.local/share/latte-dock-ng"
+    for qml_lib in lib64 lib; do
+        for old_dir in \
+                "${user_home}/.local/${qml_lib}/qt6/qml/org/kde/kirigami/templates" \
+                "${user_home}/.local/${qml_lib}/qt6/qml/org/kde/kirigami/controls" \
+                "${user_home}/.local/${qml_lib}/qt6/qml/org/kde/newstuff"; do
+            remove_tree "$old_dir"
+        done
+        remove_dir_if_empty "${user_home}/.local/${qml_lib}/qt6/qml/org/kde/kirigami"
+        remove_dir_if_empty "${user_home}/.local/${qml_lib}/qt6/qml/org/kde"
+    done
+
     if [[ "$purge_user_data" == "true" ]]; then
         for purge_path in \
                 "${user_home}/.config/latte" \
