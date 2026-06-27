@@ -72,6 +72,20 @@ find_package(PlasmaQuick ${PLASMA_MIN_VERSION} REQUIRED)
 find_package(PlasmaActivities ${PLASMA_MIN_VERSION} REQUIRED)
 find_package(KWayland ${KF6_MIN_VERSION} REQUIRED)
 find_package(LayerShellQt REQUIRED)
+
+# Detect whether LayerShellQt::Window::setScreen(QScreen*) is available.
+# It was added in LayerShellQt 6.6 and later removed upstream.
+try_compile(
+    LATTE_LAYERSHELL_HAS_SET_SCREEN
+    SOURCES ${CMAKE_SOURCE_DIR}/cmake/CheckLayerShellSetScreen.cpp
+    LINK_LIBRARIES LayerShellQt::Interface Qt6::Core Qt6::Gui
+)
+if(LATTE_LAYERSHELL_HAS_SET_SCREEN)
+    add_definitions(-DLATTE_LAYERSHELL_HAS_SET_SCREEN)
+    message(STATUS "LayerShellQt::Window::setScreen detected — enabled")
+else()
+    message(STATUS "LayerShellQt::Window::setScreen not available — using QWindow::setScreen only")
+endif()
 find_package(KF6Declarative ${KF6_MIN_VERSION} REQUIRED CONFIG)
 
 find_package(LibTaskManager ${PLASMA_MIN_VERSION} REQUIRED)

@@ -176,9 +176,13 @@ public:
         // Bind the layer-shell surface to the same output as the backing QWindow.
         // Relying only on QWindow::setScreen() can leave the compositor to place
         // cloned strut surfaces on the primary output, stacking reservations there.
+        // setScreen() was introduced in LayerShellQt 6.6 and later removed;
+        // conditional availability is detected at CMake time.
+#ifdef LATTE_LAYERSHELL_HAS_SET_SCREEN
         if (screen) {
             layerWindow->setScreen(screen);
         }
+#endif
 
         LayerShellQt::Window::Anchors anchors;
         int exclusiveZone = 0;
