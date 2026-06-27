@@ -52,6 +52,7 @@ private Q_SLOTS:
     void cmakeFindsQtCoreToolsBeforeKdeInstallDirs();
     void qtQuickGpuPreferenceKeepsSoftwareFallbackAvailable();
     void knsCompatImportsAreAvailableForSystemInstall();
+    void layerShellSetScreenGuardPreventsBuildRegression();
     void taskIconsRefreshAfterIconThemeChanges();
     void taskAudioBadgesScaleWithParabolicZoom();
     void widgetExplorerLaunchesKnsDialogOutOfProcess();
@@ -639,6 +640,38 @@ void SourceContractTest::knsCompatImportsAreAvailableForSystemInstall()
     QVERIFY(compatHeader.open(QFile::ReadOnly));
     const QString compatHeaderSource = QString::fromUtf8(compatHeader.readAll());
     QVERIFY(compatHeaderSource.contains(QStringLiteral("QString knsCompatUserQmlRoot();")));
+}
+
+void SourceContractTest::layerShellSetScreenGuardPreventsBuildRegression()
+{
+    QFile wmSource(QStringLiteral(LATTE_SOURCE_DIR "/app/wm/waylandinterface.cpp"));
+    QVERIFY(wmSource.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(wmSource.readAll());
+
+    // The unconditional QWindow::setScreen must come before the #ifdef guard.
+    QVERIFY(src.contains(QStringLiteral("setScreen(screen);")));
+    const int qwindowCall = src.indexOf(QStringLiteral("setScreen(screen);"));
+    QVERIFY(qwindowCall >= 0);
+
+    // The layerWindow->setScreen must be guarded.
+    const int ifdefGuard = src.indexOf(QStringLiteral("#ifdef LATTE_LAYERSHELL_HAS_SET_SCREEN"), qwindowCall);
+    const int layerCall = src.indexOf(QStringLiteral("layerWindow->setScreen(screen);"), ifdefGuard);
+    const int endifGuard = src.indexOf(QStringLiteral("#endif"), layerCall);
+    QVERIFY(ifdefGuard > qwindowCall);
+    QVERIFY(layerCall > ifdefGuard);
+    QVERIFY(endifGuard > layerCall);
+
+    // The try_compile probe must exist.
+    QFile probeFile(QStringLiteral(LATTE_SOURCE_DIR "/cmake/CheckLayerShellSetScreen.cpp"));
+    QVERIFY(probeFile.exists());
+
+    // The CMakeLists must contain the try_compile block.
+    QFile cmakeFile(QStringLiteral(LATTE_SOURCE_DIR "/CMakeLists.txt"));
+    QVERIFY(cmakeFile.open(QFile::ReadOnly));
+    const QString cmake = QString::fromUtf8(cmakeFile.readAll());
+    QVERIFY(cmake.contains(QStringLiteral("try_compile")));
+    QVERIFY(cmake.contains(QStringLiteral("LATTE_LAYERSHELL_HAS_SET_SCREEN")));
+    QVERIFY(cmake.contains(QStringLiteral("CheckLayerShellSetScreen.cpp")));
 }
 
 void SourceContractTest::taskIconsRefreshAfterIconThemeChanges()
