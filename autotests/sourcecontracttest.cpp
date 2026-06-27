@@ -22,6 +22,10 @@ private Q_SLOTS:
     void containmentClearsParabolicStateWhenEdgeChanges();
     void duplicateInstanceExitsWithoutQGuiAppExit();
     void allScreensCloneAppletSyncContracts();
+    void layoutManagerRepairSkipsAppletsInDestruction();
+    void layoutManagerScheduledDestructionTogglesItemVisibility();
+    void cloneViewOrderSyncDropsStaleTargetEntries();
+    void cloneViewRemovalSyncUsesSyncingFromOriginalGuard();
     void waylandStrutGhostWindowBindsLayerShellScreen();
     void launchersRestoreContractMovedToQmlSmokeTest();
     void sessionShutdownQuitDecisionMatrix_data();
@@ -258,6 +262,149 @@ void SourceContractTest::allScreensCloneAppletSyncContracts()
     QVERIFY(clonedViewSource.contains(QStringLiteral("extendedInterface()->addApplet(data, x, y);\n        m_syncingFromOriginal = false;\n        onOriginalAppletsOrderChanged();")));
     QVERIFY(clonedViewSource.contains(QStringLiteral("data.provides.contains(QLatin1String(Latte::PluginId::kLauncherMenu))")));
     QVERIFY(clonedViewSource.contains(QStringLiteral("m_cloneRemovalsFromOriginal")));
+
+    // Commit 8bc9c0e fix 1: onOriginalAppletRemoved wraps removeApplet with
+    // m_syncingFromOriginal so the clone-removed handler does not
+    // bounce the removal back to the original view.
+    const int syncingTrue = clonedViewSource.indexOf(QStringLiteral("m_syncingFromOriginal = true;"));
+    const int removeAppletCall = clonedViewSource.indexOf(QStringLiteral("extendedInterface()->removeApplet(clonedid);"), syncingTrue);
+    const int syncingFalse = clonedViewSource.indexOf(QStringLiteral("m_syncingFromOriginal = false;"), removeAppletCall);
+    QVERIFY(syncingTrue >= 0);
+    QVERIFY(removeAppletCall > syncingTrue);
+    QVERIFY(syncingFalse > removeAppletCall);
+
+    // Commit 8bc9c0e fix 2: orderWithUnmappedAppletsPreserved drops
+    // mapped-but-removed target entries instead of leaving stale IDs.
+    QVERIFY(clonedViewSource.contains(QStringLiteral("// Mapped but no translated source entry: the applet was removed")));
+    QVERIFY(clonedViewSource.contains(QStringLiteral("// on the source side — drop it from the result.")));
+
+    // Commit 8bc9c0e fix 3: setAppletInScheduledDestruction immediately
+    // hides/shows the item on all screens.
+    // Verify in the layoutmanager source (not clonedview — the visibility
+    // toggle is in LayoutManager::setAppletInScheduledDestruction).
+    QFile layoutManagerSourceFile(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(layoutManagerSourceFile.open(QFile::ReadOnly));
+    const QString layoutManagerSource = QString::fromUtf8(layoutManagerSourceFile.readAll());
+
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("item->setVisible(false);")));
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("item->setVisible(true);")));
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("// Immediately hide the item so that the widget disappears on")));
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("// Undo: re-show the item that was hidden when destruction was")));
+
+    // Commit 8bc9c0e fix 3: repairAppletContainers skips applets being
+    // destroyed to avoid re-creating UI containers for dying applets.
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("m_appletsInScheduledDestruction.contains(id)")));
+    QVERIFY(layoutManagerSource.contains(QStringLiteral("backendApplet && backendApplet->destroyed()")));
+
+    const int scheduledGuard = layoutManagerSource.indexOf(QStringLiteral("if (m_appletsInScheduledDestruction.contains(id)) {"));
+    const int destroyedGuard = layoutManagerSource.indexOf(QStringLiteral("if (backendApplet && backendApplet->destroyed()) {"), scheduledGuard);
+    QVERIFY(scheduledGuard >= 0);
+    QVERIFY(destroyedGuard > scheduledGuard);
+}
+
+void SourceContractTest::layoutManagerRepairSkipsAppletsInDestruction()
+{
+    QFile source(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(source.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(source.readAll());
+
+    // Verify repairAppletContainers() skips applets being destroyed.
+    QVERIFY(src.contains(QStringLiteral("void LayoutManager::repairAppletContainers()")));
+
+    // Guard 1: skip applets in m_appletsInScheduledDestruction.
+    QVERIFY(src.contains(QStringLiteral("if (m_appletsInScheduledDestruction.contains(id)) {\n            continue;\n        }")));
+
+    // Guard 2: skip applets whose Plasma::Applet reports destroyed().
+    QVERIFY(src.contains(QStringLiteral("if (backendApplet && backendApplet->destroyed()) {\n                continue;\n            }")));
+
+    // The two guards must appear in the correct order: scheduled-destruction
+    // check first, then the general destroyed() check.
+    const int scheduledGuard = src.indexOf(QStringLiteral("m_appletsInScheduledDestruction.contains(id)"));
+    const int destroyedGuard = src.indexOf(QStringLiteral("backendApplet->destroyed()"), scheduledGuard);
+    QVERIFY(scheduledGuard >= 0);
+    QVERIFY(destroyedGuard > scheduledGuard);
+}
+
+void SourceContractTest::layoutManagerScheduledDestructionTogglesItemVisibility()
+{
+    QFile source(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(source.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(source.readAll());
+
+    // Verify setAppletInScheduledDestruction() toggles item visibility.
+    QVERIFY(src.contains(QStringLiteral("void LayoutManager::setAppletInScheduledDestruction(const int &id, const bool &enabled)")));
+
+    // Enabled path: item saved before setVisible(false).
+    const int enabledPath = src.indexOf(QStringLiteral("} else if (!m_appletsInScheduledDestruction.contains(id) && enabled) {"));
+    QVERIFY(enabledPath >= 0);
+
+    const int assignItem = src.indexOf(QStringLiteral("m_appletsInScheduledDestruction[id] = item;"), enabledPath);
+    const int hideCall = src.indexOf(QStringLiteral("item->setVisible(false);"), assignItem);
+    QVERIFY(assignItem > enabledPath);
+    QVERIFY(hideCall > assignItem);
+
+    // Disabled path: item retrieved then setVisible(true).
+    const int disabledPath = src.indexOf(QStringLiteral("if (m_appletsInScheduledDestruction.contains(id) && !enabled) {"));
+    QVERIFY(disabledPath >= 0);
+
+    const int retrieveItem = src.indexOf(QStringLiteral("m_appletsInScheduledDestruction.value(id)"), disabledPath);
+    const int showCall = src.indexOf(QStringLiteral("item->setVisible(true);"), retrieveItem);
+    QVERIFY(retrieveItem > disabledPath);
+    QVERIFY(showCall > retrieveItem);
+
+    // The hide comment must still be present (regression lock).
+    QVERIFY(src.contains(QStringLiteral("// Immediately hide the item so that the widget disappears on")));
+    QVERIFY(src.contains(QStringLiteral("// Undo: re-show the item that was hidden when destruction was")));
+}
+
+void SourceContractTest::cloneViewOrderSyncDropsStaleTargetEntries()
+{
+    QFile source(QStringLiteral(LATTE_SOURCE_DIR "/app/view/clonedview.cpp"));
+    QVERIFY(source.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(source.readAll());
+
+    // Verify orderWithUnmappedAppletsPreserved() drops stale entries.
+    QVERIFY(src.contains(QStringLiteral("QList<int> ClonedView::orderWithUnmappedAppletsPreserved")));
+
+    // The drop-comment must exist (documents the intentional skip).
+    QVERIFY(src.contains(QStringLiteral("// Mapped but no translated source entry: the applet was removed")));
+    QVERIFY(src.contains(QStringLiteral("// on the source side — drop it from the result.")));
+
+    // The else-if branch that emits translated entries must come before the
+    // implicit drop (the drop is the else case, with only a comment).
+    const int mappedCheck = src.indexOf(QStringLiteral("} else if (translatedIndex < translated.count()) {"));
+    const int dropComment = src.indexOf(QStringLiteral("// Mapped but no translated source entry: the applet was removed"), mappedCheck);
+    QVERIFY(mappedCheck >= 0);
+    QVERIFY(dropComment > mappedCheck);
+
+    // The appended-remaining block must exist for newly added applets.
+    QVERIFY(src.contains(QStringLiteral("// Append any remaining translated entries (newly added applets).")));
+}
+
+void SourceContractTest::cloneViewRemovalSyncUsesSyncingFromOriginalGuard()
+{
+    QFile source(QStringLiteral(LATTE_SOURCE_DIR "/app/view/clonedview.cpp"));
+    QVERIFY(source.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(source.readAll());
+
+    // Verify onOriginalAppletRemoved() uses m_syncingFromOriginal.
+    QVERIFY(src.contains(QStringLiteral("void ClonedView::onOriginalAppletRemoved(const int &id)")));
+
+    // The syncing flag must be:
+    //   1. Set to true BEFORE removeApplet.
+    //   2. Set to false AFTER removeApplet.
+    const int funcStart = src.indexOf(QStringLiteral("void ClonedView::onOriginalAppletRemoved(const int &id)"));
+    QVERIFY(funcStart >= 0);
+
+    const int syncingTrue = src.indexOf(QStringLiteral("m_syncingFromOriginal = true;"), funcStart);
+    const int removeAppletCall = src.indexOf(QStringLiteral("extendedInterface()->removeApplet(clonedid);"), syncingTrue);
+    const int syncingFalse = src.indexOf(QStringLiteral("m_syncingFromOriginal = false;"), removeAppletCall);
+    const int funcEnd = src.indexOf(QStringLiteral("void ClonedView::onOriginalAppletConfigPropertyChanged"), syncingFalse);
+
+    QVERIFY(syncingTrue > funcStart);
+    QVERIFY(removeAppletCall > syncingTrue);
+    QVERIFY(syncingFalse > removeAppletCall);
+    QVERIFY(funcEnd > syncingFalse || funcEnd < 0);
 }
 
 void SourceContractTest::waylandStrutGhostWindowBindsLayerShellScreen()
@@ -464,22 +611,30 @@ void SourceContractTest::knsCompatImportsAreAvailableForSystemInstall()
     QVERIFY(mainSourceFile.open(QFile::ReadOnly));
     const QString mainSource = QString::fromUtf8(mainSourceFile.readAll());
 
-    QVERIFY(mainSource.contains(QStringLiteral("inline void ensureKnsCompatQmlImportPaths();")));
-    QVERIFY(mainSource.contains(QStringLiteral("void ensureKnsCompatQmlImportPaths()")));
+    // The KNS compat QML root factory must still be available.
     QVERIFY(mainSource.contains(QStringLiteral("knsCompatUserQmlRoot()")));
-    QVERIFY(mainSource.contains(QStringLiteral("prependEnvironmentPath(\"QML2_IMPORT_PATH\"")));
-    QVERIFY(mainSource.contains(QStringLiteral("prependEnvironmentPath(\"QML_IMPORT_PATH\"")));
-    QVERIFY(mainSource.contains(QStringLiteral("prependEnvironmentPath(\"QT_QML_IMPORT_PATH\"")));
 
+    // Paths are now engine-scoped (addImportPath) instead of env vars.
+    // collectUserLocalPaths() gathers user-local QML + plugin paths at
+    // startup without touching environment variables.
+    QVERIFY(mainSource.contains(QStringLiteral("inline void collectUserLocalPaths(int argc, char **argv);")));
+    QVERIFY(mainSource.contains(QStringLiteral("void addLatteQmlImportPaths(QQmlEngine *engine)")));
+
+    // addLatteQmlImportPaths is called on the shared engine after creation.
     const int appCreation = mainSource.indexOf(QStringLiteral("QApplication app(argc, argv);"));
     QVERIFY(appCreation >= 0);
     const int ensureCompatCall = mainSource.indexOf(QStringLiteral("ensureKnsCompat();"), appCreation);
-    const int ensureImportPathCall = mainSource.indexOf(QStringLiteral("ensureKnsCompatQmlImportPaths();"), appCreation);
     const int sharedEngineCreation = mainSource.indexOf(QStringLiteral("std::make_shared<PlasmaQuick::SharedQmlEngine>(&app);"), appCreation);
+    const int addImportPathsCall = mainSource.indexOf(QStringLiteral("addLatteQmlImportPaths(sharedEngine->engine().get());"), sharedEngineCreation);
     QVERIFY(ensureCompatCall > appCreation);
-    QVERIFY(ensureImportPathCall > ensureCompatCall);
-    QVERIFY(sharedEngineCreation > ensureImportPathCall);
+    QVERIFY(sharedEngineCreation > ensureCompatCall);
+    QVERIFY(addImportPathsCall > sharedEngineCreation);
 
+    // The old env var approach must NOT be present.
+    QVERIFY(!mainSource.contains(QStringLiteral("ensureKnsCompatQmlImportPaths")));
+    QVERIFY(!mainSource.contains(QStringLiteral("prependEnvironmentPath")));
+
+    // KNS compat header still exports the root-finder.
     QFile compatHeader(QStringLiteral(LATTE_SOURCE_DIR "/app/knscompat.h"));
     QVERIFY(compatHeader.open(QFile::ReadOnly));
     const QString compatHeaderSource = QString::fromUtf8(compatHeader.readAll());
