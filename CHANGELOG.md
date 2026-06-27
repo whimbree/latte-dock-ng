@@ -2,20 +2,27 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
-## [Unreleased]
+## [v1.2.16] - 2026-06-28
 
 ### Fixed
 - Fixed digital clock widget overflowing past the dock edge and overlapping
   neighboring icons when using long date formats.  The natural-width cap was
   increased from 3× to 5× maxIconSize to accommodate formats like "Saturday,
   June 27, 2026 10:30 AM".
+- Fixed "Unable to assign [undefined] to int" startup warning from
+  MyView.qml:37.  Added a safeInt() helper that validates bridge-host
+  property values before assignment, preventing undefined from reaching
+  int-typed properties during initialization and bridge transitions.
+- Guarded LayerShellQt::Window::setScreen with CMake feature detection to
+  prevent build failures when the LayerShellQt version lacks the method.
 
 ### Test
 - Added 60+ source contract regression tests covering widget-specific
   special handling: digital clock sizing, middle-click close active window,
   auto-pin on drag, scroll minimize/unmaximize, system tray guards, volume
   and application menu popup sizing, clipboard/digital-clock error
-  suppression, applet insertion boundaries, and separator/spacer detection.
+  suppression, applet insertion boundaries, separator/spacer detection,
+  and MyView int property guard.
 
 ## [v1.2.15] - 2026-06-27
 
