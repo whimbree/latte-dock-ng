@@ -271,6 +271,12 @@ PlasmaCore.ToolTipArea {
         if (w > 0 && target.metrics && target.metrics.maxIconSize > 0) {
             w = Math.min(w, target.metrics.maxIconSize * 8);
         }
+        // Cap the captured height as well to guard against runaway values
+        // (e.g. compact representations that report their container height
+        // before content layout is complete).
+        if (h > 0 && target.metrics && target.metrics.maxIconSize > 0) {
+            h = Math.min(h, target.metrics.maxIconSize * 3);
+        }
         target.externalAppletNaturalWidth = w;
         target.externalAppletNaturalHeight = h;
 
@@ -304,9 +310,12 @@ PlasmaCore.ToolTipArea {
     // next poll cycle.
     Connections {
         target: compactRepresentation
-        enabled: compactRepresentation && naturalWidthPollTimer.running
-        function onImplicitWidthChanged() { updateNaturalWidth(); }
-        function onChildrenRectChanged() { updateNaturalWidth(); }
+        function onImplicitWidthChanged() {
+            if (naturalWidthPollTimer.running) updateNaturalWidth();
+        }
+        function onChildrenRectChanged() {
+            if (naturalWidthPollTimer.running) updateNaturalWidth();
+        }
     }
 
     Timer {

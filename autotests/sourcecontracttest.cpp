@@ -1218,9 +1218,14 @@ void SourceContractTest::compactAppletDigitalClockWidthCapPreventsLongDateFormat
     // Digital Clock that may have wider compact representations.
     QVERIFY(source.contains(QStringLiteral("maxIconSize * 8")));
 
-    // Regression guard: the old 5× and 3× caps must not reappear.
+    // Regression guard: the old 5× width cap must not reappear.
     QVERIFY(!source.contains(QStringLiteral("maxIconSize * 5")));
-    QVERIFY(!source.contains(QStringLiteral("maxIconSize * 3")));
+
+    // maxIconSize * 3 is used for the height cap, not the width cap.
+    // Verify it only appears in the height-capping context.
+    const int heightCap = source.indexOf(QStringLiteral("maxIconSize * 3"));
+    QVERIFY(heightCap > 0);
+    QVERIFY(source.lastIndexOf(QStringLiteral("maxIconSize * 3")) == heightCap);
 
     // Both sizing functions must still exist.
     QVERIFY(source.contains(QStringLiteral("function captureNaturalSize()")));
