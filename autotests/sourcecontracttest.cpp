@@ -1212,27 +1212,29 @@ void SourceContractTest::compactAppletDigitalClockWidthCapPreventsLongDateFormat
     QVERIFY(appletFile.open(QFile::ReadOnly));
     const QString source = QString::fromUtf8(appletFile.readAll());
 
-    // Both captureNaturalSize and updateNaturalWidth must cap at 5×
+    // Both captureNaturalSize and updateNaturalWidth must cap at 8×
     // maxIconSize to leave room for long date formats (e.g. "Saturday,
-    // June 27, 2026 10:30 AM") that exceed the original 3× cap.
-    QVERIFY(source.contains(QStringLiteral("maxIconSize * 5")));
+    // June 27, 2026 10:30 AM") and third-party clocks like Colorful
+    // Digital Clock that may have wider compact representations.
+    QVERIFY(source.contains(QStringLiteral("maxIconSize * 8")));
 
-    // Regression guard: the old 3× cap must not reappear.
+    // Regression guard: the old 5× and 3× caps must not reappear.
+    QVERIFY(!source.contains(QStringLiteral("maxIconSize * 5")));
     QVERIFY(!source.contains(QStringLiteral("maxIconSize * 3")));
 
     // Both sizing functions must still exist.
     QVERIFY(source.contains(QStringLiteral("function captureNaturalSize()")));
     QVERIFY(source.contains(QStringLiteral("function updateNaturalWidth()")));
 
-    // The "digitalclock" string must remain — it gates the entire
-    // special-cased slot sizing so only clock widgets are affected.
-    QVERIFY(source.contains(QStringLiteral("digitalclock")));
+    // The isTextApplet gate must match clock plugins by the generic
+    // "clock" substring so third-party clocks like Colorful Digital Clock
+    // (co.n7k.plasma.digitalclock) are included.
+    QVERIFY(source.contains(QStringLiteral("indexOf(\"clock\") >= 0")));
 
-    // "analogclock" must NOT appear — it was intentionally removed from
-    // the isTextApplet check (commit ad0d2c2e5) because analog clocks are
-    // square clock faces, not text-heavy widgets, and the wide slot
-    // produced extra empty space on both sides.
-    QVERIFY(!source.contains(QStringLiteral("analogclock")));
+    // "analogclock" must be explicitly excluded from the isTextApplet
+    // check so that square analog clock faces keep the standard
+    // icon-size slot behavior.
+    QVERIFY(source.contains(QStringLiteral("indexOf(\"analogclock\") < 0")));
 
     // externalAppletDrawsAboveTasks must guard both functions so
     // internal applets never receive the wider slot treatment.
@@ -1255,8 +1257,8 @@ void SourceContractTest::compactAppletDigitalClockWidthCapPreventsLongDateFormat
     // and inside updateNaturalWidth (the second occurrence).
     const int captureFn = source.indexOf(QStringLiteral("function captureNaturalSize()"));
     const int updateFn = source.indexOf(QStringLiteral("function updateNaturalWidth()"));
-    const int firstCap = source.indexOf(QStringLiteral("maxIconSize * 5"), captureFn);
-    const int secondCap = source.indexOf(QStringLiteral("maxIconSize * 5"), firstCap + QStringLiteral("maxIconSize * 5").length());
+    const int firstCap = source.indexOf(QStringLiteral("maxIconSize * 8"), captureFn);
+    const int secondCap = source.indexOf(QStringLiteral("maxIconSize * 8"), firstCap + QStringLiteral("maxIconSize * 8").length());
     QVERIFY(captureFn >= 0);
     QVERIFY(updateFn > captureFn);
     QVERIFY(firstCap > captureFn);
