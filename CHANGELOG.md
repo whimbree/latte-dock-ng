@@ -2,6 +2,32 @@
 
 All notable changes to Latte Dock NG are documented in this file.
 
+## [v1.2.17] - 2026-06-28
+
+### Fixed
+- Fixed third-party clocks (e.g. Colorful Digital Clock) still overflowing
+  after the v1.2.16 cap increase.  Clock detection now matches any plugin
+  name containing "clock" (excluding "analogclock") instead of only
+  "digitalclock".  The natural-width cap is further increased from 5× to
+  8× maxIconSize for the widest clock representations.
+- Added signal-driven slot width updates via onImplicitWidthChanged and
+  onChildrenRectChanged so the slot resizes immediately when clock text
+  content changes (no more 2 s polling delay).
+- Added a height cap (3× maxIconSize) to guard against runaway compact
+  representation heights (e.g. h=1352 from Colorful Digital Clock).
+- Fixed "Unable to assign [undefined] to int" startup warning from
+  MyView.qml:37 with a safeInt() helper.
+
+### Test
+- Added 15 boundary regression tests covering previously untested
+  special-cased logic: indicator factory builtin exclusion, wayland
+  window whitelist, context menu wiring, layout manager cleanup,
+  separator plugin constants, export model applet list, latte package
+  branching, indicator type remapping, message suppression, internal
+  view splitter guards, fallback tracked windows, constraint hints,
+  launcher/drag-drop detection, plasmoid wheel bypass, and compact
+  applet fallback sizing.  Test suite: 61 → 76.
+
 ## [v1.2.16] - 2026-06-28
 
 ### Fixed
