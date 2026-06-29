@@ -85,6 +85,9 @@ void ClonedView::initSync()
     connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::initializationCompleted, this, [this]() {
         m_cloneInitialized = true;
         updateAppletIdsHash();
+        if (structuralSyncReady()) {
+            onOriginalAppletsOrderChanged();
+        }
         debugSyncState(QStringLiteral("clone initialization completed"));
     });
     connect(extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletsOrderChanged, this, &ClonedView::updateAppletIdsHash);
@@ -141,6 +144,9 @@ void ClonedView::initSync()
     connect(m_originalView->extendedInterface(), &Latte::ViewPart::ContainmentInterface::initializationCompleted, this, [this]() {
         m_originalInitialized = true;
         updateAppletIdsHash();
+        if (structuralSyncReady()) {
+            onOriginalAppletsOrderChanged();
+        }
         debugSyncState(QStringLiteral("original initialization completed"));
     });
     connect(m_originalView->extendedInterface(), &Latte::ViewPart::ContainmentInterface::appletDataCreated, this, [this]() {
