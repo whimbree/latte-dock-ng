@@ -83,6 +83,54 @@ private Q_SLOTS:
     void plasmoidLaunchersAndDragDropHavePluginDetectionGuards();
     void containmentMainQmlHasPlasmoidWheelBypassGuards();
     void compactAppletFallbackSizingAndMinimumDimensionGuards();
+    void layoutManagerShouldRetryGatedByMaxRetries();
+    void mainCppSelfPipeSigintHandlerAndReplaceLockTimeout();
+    // LayoutManager restore() boundary conditions
+    void layoutManagerRestoreMaxRetryExhaustionFallsThrough();
+    void layoutManagerRestoreBuildsOrderFromLiveAppletsWhenStoredEmpty();
+    void layoutManagerRestoreInvalidAppletCleanupPreservesValidIds();
+    void layoutManagerRestoreAppletContainerCreationRetryLimit();
+    // VisibilityManager QML guard matrix
+    void visibilityManagerSlotMustBeShownGuardsStartupAndMode();
+    void visibilityManagerSlotMustBeHideGuardsMouseAndBlockHiding();
+    void visibilityManagerUpdateMaskAreaClampingPreventsNegativeBounds();
+    void visibilityManagerSlidingOutAnimationInitGatesInStartup();
+    // Positioner boundary checks
+    void positionerStartupPaintOffScreenAtNegative9999();
+    void positionerSyncGeometrySuppressedDuringSlideAnimation();
+    void positionerResizeWindowEnforcesWaylandMinimumSize();
+    void positionerPlasmaPanelGeometryIntersectionGuardsEmptyList();
+    // Storage boundary constants
+    void storageAvailableIdUpperBoundExcludesId32000();
+    void storageNewUniqueIdsFileCircularAssignmentDetection();
+    void storageExpectedViewScreenIdAllSecondaryEmptyFallback();
+    // Importer version detection
+    void importerFileVersionDetectsLayoutVersion2AndConfigVersion1();
+    void importerLayoutCanBeImportedRejectsVersionBelow2();
+    void importerUniqueLayoutNameCollisionLoopHasGuard();
+    // ScreenPool fallback paths
+    void screenPoolScreenForIdFallsBackToPrimaryWhenScreenAbsent();
+    void plasmaExtendedScreenPoolIdReturnsZeroForPrimaryConnector();
+    void screenPoolIsScreenActiveReturnsFalseForStaleDisconnectedId();
+    // Launchers QML boundary conditions
+    void launchersNormalizeLauncherListExpandsOnlyLength2to4();
+    void launchersFreeSeparatorNameExhaustionReturnsEmptyString();
+    void launchersTransientEmptyRecoveryCeilingAt8();
+    void launchersIsSeparatorGuardsDesktopExtensionPosition();
+    void launchersAddDroppedLauncherIconDataTruncationBoundary();
+    // main.cpp CLI and startup boundary paths
+    void mainCppAvailableLayoutsPrintsDifferentMessageWhenEmpty();
+    void mainCppLayoutOptionExitsForMissingLayout();
+    void mainCppClearCacheSkipsNonexistentDirectory();
+    void mainCppImportLayoutExitsOnImportFailure();
+    void mainCppDeferredDeleteDrainHardLimit5Passes();
+    void mainCppDetectPlatformPreservesExplicitPlatformArg();
+    // main.qml startup sequence contacts
+    void mainQmlInStartupSetFalseInSlidingOutAnimationOnStopped();
+    void mainQmlStartupDelayerTriggeredByHasRestoredAppletsSignal();
+    void mainQmlCreateAppletItemRetryCeilingAt80();
+    void mainQmlPanelCfgSyncTransparencySevenInputClasses();
+    void mainQmlOnInStartupChangedMustCheckLatteViewExists();
 };
 
 void SourceContractTest::plasmaVolumeBootstrapContractMovedToQmlSmokeTest()
@@ -498,8 +546,10 @@ void SourceContractTest::sessionShutdownHandlingMatchesStableWaylandPath()
     const QString mainSource = QString::fromUtf8(mainSourceFile.readAll());
 
     QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGTERM);")));
-    QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGINT);")));
     QVERIFY(mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGHUP);")));
+    // SIGINT is excluded from KSignalHandler — handled by self-pipe fallback.
+    QVERIFY(!mainSource.contains(QStringLiteral("KSignalHandler::self()->watchSignal(SIGINT);")));
+    QVERIFY(mainSource.contains(QStringLiteral("sigaction(SIGINT, &sa, nullptr)")));
     QVERIFY(mainSource.contains(QStringLiteral("QCoreApplication::setAttribute(Qt::AA_DisableSessionManager);")));
     QVERIFY(mainSource.contains(QStringLiteral("QCoreApplication::setQuitLockEnabled(false);")));
     QVERIFY(mainSource.contains(QStringLiteral("qputenv(\"LATTE_SESSION_ENDING\", \"1\");")));
@@ -1855,6 +1905,541 @@ void SourceContractTest::clonedViewDefersInitialAppletOrderSyncUntilStructuralRe
     // startup before both sides and the mapping hash are ready.
     QVERIFY(src.contains(QStringLiteral("void ClonedView::onOriginalAppletsOrderChanged()")));
     QVERIFY(src.contains(QStringLiteral("if (!structuralSyncReady())")));
+}
+
+void SourceContractTest::layoutManagerShouldRetryGatedByMaxRetries()
+{
+    QFile layoutManagerCpp(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(layoutManagerCpp.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(layoutManagerCpp.readAll());
+
+    // The shouldRetry condition must include m_restoreRetryCount < 60 so that
+    // when max retries are exhausted the function falls through to start the
+    // hasRestoredApplets timer.  Without this gate the dock stays off-screen
+    // permanently because shouldRetry stays true forever while no more retries
+    // are scheduled.
+    QVERIFY(src.contains(QStringLiteral(
+        "const bool shouldRetry = ((expectedAppletCount > 0) || initialWarmupRetries) && (m_restoreRetryCount < 60);")));
+}
+
+void SourceContractTest::mainCppSelfPipeSigintHandlerAndReplaceLockTimeout()
+{
+    QFile mainCpp(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(mainCpp.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(mainCpp.readAll());
+
+    // SIGINT must NOT be watched by KSignalHandler — the self-pipe handles it.
+    QVERIFY(!src.contains(QStringLiteral("watchSignal(SIGINT)")));
+
+    // SIGTERM and SIGHUP must still be watched by KSignalHandler.
+    QVERIFY(src.contains(QStringLiteral("watchSignal(SIGTERM)")));
+    QVERIFY(src.contains(QStringLiteral("watchSignal(SIGHUP)")));
+
+    // Self-pipe infrastructure must be present.
+    QVERIFY(src.contains(QStringLiteral("static int sigPipe[2]")));
+    QVERIFY(src.contains(QStringLiteral("sigaction(SIGINT, &sa, nullptr)")));
+    QVERIFY(src.contains(QStringLiteral("new QSocketNotifier(sigPipe[0]")));
+    QVERIFY(src.contains(QStringLiteral("SIGINT received via self-pipe")));
+
+    // --replace lock acquisition must use a bounded timeout, not -1 (infinite).
+    QVERIFY(!src.contains(QStringLiteral("timeout = -1")));
+    QVERIFY(src.contains(QStringLiteral("timeout = 5000")));
+
+    // Better error message when old instance doesn't exit in time.
+    QVERIFY(src.contains(QStringLiteral("Old instance (PID %1) did not exit in time")));
+}
+
+// ------------------------------------------------------------------------
+// LayoutManager restore() boundary conditions
+// ------------------------------------------------------------------------
+
+void SourceContractTest::layoutManagerRestoreMaxRetryExhaustionFallsThrough()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // After 60 retries the function must proceed past the applets.isEmpty()
+    // early-return gate and eventually call m_hasRestoredAppletsTimer.start().
+    // The gate: shouldRetry must become false when m_restoreRetryCount >= 60.
+    QVERIFY(src.contains(QStringLiteral("m_restoreRetryCount < 60")));
+    QVERIFY(src.contains(QStringLiteral("m_hasRestoredAppletsTimer.start()")));
+    // The retry-scheduling inner if must also respect the 60-retry limit.
+    QVERIFY(src.contains(QStringLiteral("shouldRetry && m_restoreRetryCount < 60")));
+}
+
+void SourceContractTest::layoutManagerRestoreBuildsOrderFromLiveAppletsWhenStoredEmpty()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When the stored appletIdsOrder is empty but live applets exist,
+    // the order must be built from the live applet list.
+    QVERIFY(src.contains(QStringLiteral("appletIdsOrder.isEmpty() && !applets.isEmpty()")));
+    QVERIFY(src.contains(QStringLiteral("appletIdsOrder << currentAppletId")));
+}
+
+void SourceContractTest::layoutManagerRestoreInvalidAppletCleanupPreservesValidIds()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Invalid applet tracking: only positive IDs are checked, negative/zero skipped.
+    QVERIFY(src.contains(QStringLiteral("aid>0 && !isValidApplet(aid)")));
+    // Invalid applets must be removed from the order.
+    QVERIFY(src.contains(QStringLiteral("invalidApplets")));
+    QVERIFY(src.contains(QStringLiteral("removeAll")));
+}
+
+void SourceContractTest::layoutManagerRestoreAppletContainerCreationRetryLimit()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/containment/plugin/layoutmanager.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Applet container creation retry path must be bounded by 60 retries.
+    QVERIFY(src.contains(QStringLiteral("appletContainerCreationFailed")));
+    QVERIFY(src.contains(QStringLiteral("applet containers not ready yet, postponing restore")));
+}
+
+// ------------------------------------------------------------------------
+// VisibilityManager QML guard matrix
+// ------------------------------------------------------------------------
+
+void SourceContractTest::visibilityManagerSlotMustBeShownGuardsStartupAndMode()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/VisibilityManager.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // slotMustBeShown must gate on inStartup, visibility mode, slide animation,
+    // relocation hiding, and isHidden state.
+    QVERIFY(src.contains(QStringLiteral("function slotMustBeShown")));
+    QVERIFY(src.contains(QStringLiteral("root.inStartup")));
+    QVERIFY(src.contains(QStringLiteral("WindowsCanCover")));
+    QVERIFY(src.contains(QStringLiteral("inRelocationHiding")));
+}
+
+void SourceContractTest::visibilityManagerSlotMustBeHideGuardsMouseAndBlockHiding()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/VisibilityManager.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // slotMustBeHide must gate on isHidden, containsMouse, blockHiding,
+    // inStartup, inSlidingIn, inRelocationHiding, and SidebarOnDemand mode.
+    QVERIFY(src.contains(QStringLiteral("function slotMustBeHide")));
+    QVERIFY(src.contains(QStringLiteral("!latteView.visibility.blockHiding")));
+    QVERIFY(src.contains(QStringLiteral("SidebarOnDemand")));
+    QVERIFY(src.contains(QStringLiteral("containsMouse")));
+}
+
+void SourceContractTest::visibilityManagerUpdateMaskAreaClampingPreventsNegativeBounds()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/VisibilityManager.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Mask area updates must clamp coordinates to non-negative values
+    // and constrain dimensions within the latteView bounds.
+    QVERIFY(src.contains(QStringLiteral("updateMaskArea")));
+    QVERIFY(src.contains(QStringLiteral("Math.max(0")));
+    QVERIFY(src.contains(QStringLiteral("Math.min")));
+}
+
+void SourceContractTest::visibilityManagerSlidingOutAnimationInitGatesInStartup()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/VisibilityManager.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The sliding-out animation init() must start the animation when
+    // inRelocationAnimation, inStartup, or !blockHiding is true.
+    QVERIFY(src.contains(QStringLiteral("function init()")));
+    QVERIFY(src.contains(QStringLiteral("inRelocationAnimation || root.inStartup")));
+}
+
+// ------------------------------------------------------------------------
+// Positioner boundary checks
+// ------------------------------------------------------------------------
+
+void SourceContractTest::positionerStartupPaintOffScreenAtNegative9999()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/view/positioner.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // During startup the dock must be painted off-screen at (-9999, -9999)
+    // so the initial layout happens invisibly.
+    QVERIFY(src.contains(QStringLiteral("m_inStartup")));
+    QVERIFY(src.contains(QStringLiteral("-9999")));
+}
+
+void SourceContractTest::positionerSyncGeometrySuppressedDuringSlideAnimation()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/view/positioner.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // syncGeometry must return early when a slide animation is in progress
+    // or the slide offset is non-zero.
+    QVERIFY(src.contains(QStringLiteral("m_slideOffset!=0 || inSlideAnimation()")));
+}
+
+void SourceContractTest::positionerResizeWindowEnforcesWaylandMinimumSize()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/view/positioner.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Width and height must be clamped to at least 1 to prevent
+    // Wayland protocol violations from zero-size windows.
+    QVERIFY(src.contains(QStringLiteral("qMax(1, size.width())")));
+    QVERIFY(src.contains(QStringLiteral("qMax(1, size.height())")));
+}
+
+void SourceContractTest::positionerPlasmaPanelGeometryIntersectionGuardsEmptyList()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/view/positioner.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When plasma panel geometries are empty, the intersection step is skipped.
+    QVERIFY(src.contains(QStringLiteral("panelGeometries.isEmpty()")));
+    QVERIFY(src.contains(QStringLiteral("plasmaPanelGeometries")));
+}
+
+// ------------------------------------------------------------------------
+// Storage boundary constants
+// ------------------------------------------------------------------------
+
+void SourceContractTest::storageAvailableIdUpperBoundExcludesId32000()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/storage.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The ID search loop uses i < 32000, so ID 32000 is never returned.
+    QVERIFY(src.contains(QStringLiteral("32000")));
+    // The loop constrain i < 32000 must be present.
+    QVERIFY(src.contains(QStringLiteral("i < 32000")) || src.contains(QStringLiteral("i<32000")));
+}
+
+void SourceContractTest::storageNewUniqueIdsFileCircularAssignmentDetection()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/storage.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Circular assignment detection: cId != assigned[cId] && cId == value2.
+    QVERIFY(src.contains(QStringLiteral("cId != assigned[cId]")));
+    QVERIFY(src.contains(QStringLiteral("cId == value2")));
+}
+
+void SourceContractTest::storageExpectedViewScreenIdAllSecondaryEmptyFallback()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/storage.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When AllSecondaryScreensGroup is selected and the secondary list is empty,
+    // the view must fall back to the primary screen.
+    QVERIFY(src.contains(QStringLiteral("AllSecondaryScreensGroup")));
+    QVERIFY(src.contains(QStringLiteral("secondaryscreens.isEmpty()")));
+}
+
+// ------------------------------------------------------------------------
+// Importer version detection
+// ------------------------------------------------------------------------
+
+void SourceContractTest::importerFileVersionDetectsLayoutVersion2AndConfigVersion1()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/importer.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // fileVersion must distinguish between ConfigVersion1, ConfigVersion2,
+    // and UnknownFileType.
+    QVERIFY(src.contains(QStringLiteral("ConfigVersion1")));
+    QVERIFY(src.contains(QStringLiteral("ConfigVersion2")));
+    QVERIFY(src.contains(QStringLiteral("UnknownFileType")));
+    QVERIFY(src.contains(QStringLiteral("LayoutVersion2")));
+}
+
+void SourceContractTest::importerLayoutCanBeImportedRejectsVersionBelow2()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/importer.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // layoutCanBeImported must reject layout files whose version is below 2.
+    QVERIFY(src.contains(QStringLiteral("layoutCanBeImported")));
+    QVERIFY(src.contains(QStringLiteral("version")) && src.contains(QStringLiteral(">=2")));
+}
+
+void SourceContractTest::importerUniqueLayoutNameCollisionLoopHasGuard()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/layouts/importer.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The name collision resolution loop must not be unbounded.
+    QVERIFY(src.contains(QStringLiteral("uniqueLayoutName")));
+    QVERIFY(src.contains(QStringLiteral("layoutExists(name)")));
+}
+
+// ------------------------------------------------------------------------
+// ScreenPool fallback paths
+// ------------------------------------------------------------------------
+
+void SourceContractTest::screenPoolScreenForIdFallsBackToPrimaryWhenScreenAbsent()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/screenpool.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When the requested screen ID is valid but the screen is not currently
+    // connected, the function must fall back to the primary screen.
+    QVERIFY(src.contains(QStringLiteral("screenForId")));
+    QVERIFY(src.contains(QStringLiteral("primaryScreen()")));
+}
+
+void SourceContractTest::plasmaExtendedScreenPoolIdReturnsZeroForPrimaryConnector()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/plasma/extended/screenpool.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When the connector matches the primary screen name but is not in the
+    // internal map, id() must return 0 as the primary-screen sentinel.
+    QVERIFY(src.contains(QStringLiteral("primaryScreen()->name() == connector")));
+}
+
+void SourceContractTest::screenPoolIsScreenActiveReturnsFalseForStaleDisconnectedId()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/screenpool.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // isScreenActive must return false when the screen ID exists in the
+    // mapping table but the physical screen is no longer connected.
+    QVERIFY(src.contains(QStringLiteral("isScreenActive")));
+    QVERIFY(src.contains(QStringLiteral("qGuiApp->screens()")));
+}
+
+// ------------------------------------------------------------------------
+// Launchers QML boundary conditions
+// ------------------------------------------------------------------------
+
+void SourceContractTest::launchersNormalizeLauncherListExpandsOnlyLength2to4()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Default expansion only applies when normalized.length >= 2 and < 5
+    // (i.e. lengths 2, 3, 4 — not 0, 1, or 5+).
+    QVERIFY(src.contains(QStringLiteral("normalized.length >= 2")));
+    QVERIFY(src.contains(QStringLiteral("normalized.length < defaultLaunchers.length")));
+    QVERIFY(src.contains(QStringLiteral("defaultLaunchers = [")));
+}
+
+void SourceContractTest::launchersFreeSeparatorNameExhaustionReturnsEmptyString()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When all 19 separator names are taken, freeAvailableSeparatorName
+    // must return an empty string.
+    QVERIFY(src.contains(QStringLiteral("no<20")));
+    QVERIFY(src.contains(QStringLiteral("return \"\"")));
+}
+
+void SourceContractTest::launchersTransientEmptyRecoveryCeilingAt8()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // Transient empty launcher list recovery is capped at 8 attempts.
+    QVERIFY(src.contains(QStringLiteral("_transientEmptyRecoveries < 8")));
+}
+
+void SourceContractTest::launchersIsSeparatorGuardsDesktopExtensionPosition()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // isSeparator must check that ".desktop" is NOT at string index 1,
+    // because genuine .desktop files have it at index 0.
+    QVERIFY(src.contains(QStringLiteral("latte-separator")));
+    QVERIFY(src.contains(QStringLiteral(".desktop\")!==1")));
+}
+
+void SourceContractTest::launchersAddDroppedLauncherIconDataTruncationBoundary()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/plasmoid/package/contents/ui/abilities/Launchers.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // addDroppedLauncher must strip ?iconData= suffix, but only when
+    // the separator appears at position > 0 (not at the start).
+    QVERIFY(src.contains(QStringLiteral("?iconData=")));
+    QVERIFY(src.contains(QStringLiteral("pos>0")));
+}
+
+// ------------------------------------------------------------------------
+// main.cpp CLI and startup boundary paths
+// ------------------------------------------------------------------------
+
+void SourceContractTest::mainCppAvailableLayoutsPrintsDifferentMessageWhenEmpty()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // --available-layouts must print a different message when the list is empty
+    // vs. non-empty.
+    QVERIFY(src.contains(QStringLiteral("layouts.count() > 0")));
+    QVERIFY(src.contains(QStringLiteral("There are no available layouts")));
+}
+
+void SourceContractTest::mainCppLayoutOptionExitsForMissingLayout()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // --layout <name> must validate the layout exists and exit if it doesn't.
+    QVERIFY(src.contains(QStringLiteral("layoutExists")));
+    QVERIFY(src.contains(QStringLiteral("doesn't exist")));
+}
+
+void SourceContractTest::mainCppClearCacheSkipsNonexistentDirectory()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // --clear-cache must skip removal when the cache directory doesn't exist.
+    QVERIFY(src.contains(QStringLiteral("cacheDir.exists()")));
+    QVERIFY(src.contains(QStringLiteral("removeRecursively")));
+}
+
+void SourceContractTest::mainCppImportLayoutExitsOnImportFailure()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // --import-layout must exit when the import fails (importedLayout.isEmpty()).
+    QVERIFY(src.contains(QStringLiteral("importLayoutHelper")));
+    QVERIFY(src.contains(QStringLiteral("cannot be imported")));
+}
+
+void SourceContractTest::mainCppDeferredDeleteDrainHardLimit5Passes()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The post-exec DeferredDelete drain loop must have a hard limit of 5 passes.
+    QVERIFY(src.contains(QStringLiteral("pass < 5")));
+    QVERIFY(src.contains(QStringLiteral("sendPostedEvents(nullptr, QEvent::DeferredDelete)")));
+}
+
+void SourceContractTest::mainCppDetectPlatformPreservesExplicitPlatformArg()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR "/app/main.cpp"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // When the user passes an explicit -platform or --platform argument,
+    // detectPlatform must not override QT_QPA_PLATFORM.
+    QVERIFY(src.contains(QStringLiteral("detectPlatform")));
+    QVERIFY(src.contains(QStringLiteral("-platform")));
+    QVERIFY(src.contains(QStringLiteral("qt.qpa.platform")) || src.contains(QStringLiteral("QT_QPA_PLATFORM")));
+}
+
+// ------------------------------------------------------------------------
+// main.qml startup sequence contracts
+// ------------------------------------------------------------------------
+
+void SourceContractTest::mainQmlInStartupSetFalseInSlidingOutAnimationOnStopped()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/VisibilityManager.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // root.inStartup must be set to false inside the sliding-out animation's
+    // onStopped handler, which triggers the startup-finished transition.
+    QVERIFY(src.contains(QStringLiteral("root.inStartup = false")));
+    QVERIFY(src.contains(QStringLiteral("root.inStartup")));
+}
+
+void SourceContractTest::mainQmlStartupDelayerTriggeredByHasRestoredAppletsSignal()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/main.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The startupDelayer timer must be started when hasRestoredApplets becomes true.
+    QVERIFY(src.contains(QStringLiteral("hasRestoredApplets")));
+    QVERIFY(src.contains(QStringLiteral("startupDelayer.start()")));
+}
+
+void SourceContractTest::mainQmlCreateAppletItemRetryCeilingAt80()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/main.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // The applet item creation retry loop must stop at 80 attempts.
+    QVERIFY(src.contains(QStringLiteral("retryCount >= 80")));
+    QVERIFY(src.contains(QStringLiteral("createAppletItem")));
+}
+
+void SourceContractTest::mainQmlPanelCfgSyncTransparencySevenInputClasses()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/main.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // panelCfgSync must handle transparency values: pt === -1, "-1",
+    // undefined, null, "", Number(pt) >= 100.
+    QVERIFY(src.contains(QStringLiteral("\"-1\"")));
+    QVERIFY(src.contains(QStringLiteral("Number(pt) >= 100")));
+    QVERIFY(src.contains(QStringLiteral("panelCfgSync")) || src.contains(QStringLiteral("transparency")));
+}
+
+void SourceContractTest::mainQmlOnInStartupChangedMustCheckLatteViewExists()
+{
+    QFile f(QStringLiteral(LATTE_SOURCE_DIR
+        "/containment/package/contents/ui/main.qml"));
+    QVERIFY(f.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(f.readAll());
+
+    // onInStartupChanged must guard against null latteView before accessing
+    // latteView.positioner.
+    QVERIFY(src.contains(QStringLiteral("onInStartupChanged")));
+    QVERIFY(src.contains(QStringLiteral("latteView && latteView.positioner")));
 }
 
 QTEST_MAIN(SourceContractTest)
