@@ -61,6 +61,7 @@ private Q_SLOTS:
     void contextMenuLayerMiddleClickCloseActiveWindowGuardedCorrectly();
     void mouseHandlerAutoPinOnDragPromotesNonLauncherTasks();
     void scrollToggleMinimizedDownwardUnmaximizesBeforeMinimizing();
+    void scrollToggleMinimizedUsesAllScreensTrackerForMinimizeAndMaximize();
     void systrayGuardsInAppletItemPreventLayoutAndInteractionBreakage();
     void volumeAndAppMenuPopupSizingUsesLargerMinimumInCompactApplet();
     void clipboardAndDigitalClockErrorSuppressionInMainCpp();
@@ -1423,6 +1424,45 @@ void SourceContractTest::scrollToggleMinimizedDownwardUnmaximizesBeforeMinimizin
     const int downMinimize = source.indexOf(QStringLiteral("requestToggleMinimized"), second);
     QVERIFY(downBlock > second);
     QVERIFY(downMinimize > downBlock);
+}
+
+void SourceContractTest::scrollToggleMinimizedUsesAllScreensTrackerForMinimizeAndMaximize()
+{
+    // The ScrollToggleMinimized handlers in both main.qml and
+    // EnvironmentActions.qml must target the allScreens (global)
+    // lastActiveWindow tracker instead of selectedWindowsTracker
+    // (per-screen).  Otherwise docks on secondary screens can never
+    // minimize/maximize windows because their per-screen tracker
+    // has never been populated (commit b4bd3a3e6 → f4ab344ee).
+
+    auto checkFileUsesAllScreens = [](const QString &filePath) {
+        QFile f(filePath);
+        QVERIFY2(f.open(QFile::ReadOnly), qPrintable(filePath));
+        const QString src = QString::fromUtf8(f.readAll());
+
+        QVERIFY(src.contains(QStringLiteral("ScrollToggleMinimized")));
+
+        // Both ScrollToggleMinimized branches (upward Ctrl and
+        // downward) should access allScreens.lastActiveWindow for
+        // the minimize / maximize-toggle actions.
+        const int first = src.indexOf(QStringLiteral("ScrollToggleMinimized"));
+        const int second = src.indexOf(QStringLiteral("ScrollToggleMinimized"),
+                                        first + QStringLiteral("ScrollToggleMinimized").length());
+
+        // At least one allScreens.lastActiveWindow access must appear
+        // within each ScrollToggleMinimized block.
+        const int upAllScreens = src.indexOf(QStringLiteral("allScreens.lastActiveWindow"), first);
+        const int downAllScreens = src.indexOf(QStringLiteral("allScreens.lastActiveWindow"), second);
+
+        QVERIFY(upAllScreens > first);
+        QVERIFY(upAllScreens < (second > 0 ? second : src.length()));
+        QVERIFY(downAllScreens > second);
+    };
+
+    checkFileUsesAllScreens(
+        QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/ui/main.qml"));
+    checkFileUsesAllScreens(
+        QStringLiteral(LATTE_SOURCE_DIR "/containment/package/contents/ui/layouts/EnvironmentActions.qml"));
 }
 
 void SourceContractTest::systrayGuardsInAppletItemPreventLayoutAndInteractionBreakage()
