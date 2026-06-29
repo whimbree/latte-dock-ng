@@ -68,6 +68,7 @@ private Q_SLOTS:
     void separatorAndSpacerDetectionAndBehaviorInAppletItem();
     void separatorGuardsAcrossLayoutAndDragDropFiles();
     void myViewClientIntPropertiesUseSafeIntGuardAgainstUndefined();
+    void clonedViewDefersInitialAppletOrderSyncUntilStructuralReady();
     void indicatorFactoryExcludesBuiltinPluginsFromCustomLists();
     void waylandInterfaceAcceptableWindowHasHardcodedAppIdWhitelist();
     void genericLayoutReassertsDefaultContextMenuOnContainmentWiring();
@@ -1823,6 +1824,37 @@ void SourceContractTest::compactAppletFallbackSizingAndMinimumDimensionGuards()
     // Popup menu minimum dimensions must be capped at gridUnit * 18
     // for resizable applet popups.
     QVERIFY(src.contains(QStringLiteral("Kirigami.Units.gridUnit * 18")));
+}
+
+void SourceContractTest::clonedViewDefersInitialAppletOrderSyncUntilStructuralReady()
+{
+    QFile clonedViewFile(QStringLiteral(LATTE_SOURCE_DIR "/app/view/clonedview.cpp"));
+    QVERIFY(clonedViewFile.open(QFile::ReadOnly));
+    const QString src = QString::fromUtf8(clonedViewFile.readAll());
+
+    // structuralSyncReady() must be defined as a gate for deferred sync
+    QVERIFY(src.contains(QStringLiteral("bool ClonedView::structuralSyncReady() const")));
+
+    // Clone-side initializationCompleted handler: after setting m_cloneInitialized
+    // and updating the applet IDs hash, it must check structuralSyncReady() and
+    // fire onOriginalAppletsOrderChanged() when the structure becomes ready.
+    // This is the deferred initial order sync — without it, the clone keeps
+    // Plasma's default order and the task-manager plasmoid lands at a different
+    // appletIndex, breaking launcher sync (syncedGroupId mismatch).
+    QVERIFY(src.contains(QStringLiteral("m_cloneInitialized = true;")));
+    QVERIFY(src.contains(QStringLiteral("if (structuralSyncReady())")));
+    QVERIFY(src.contains(QStringLiteral("onOriginalAppletsOrderChanged();")));
+
+    // Original-side initializationCompleted handler must contain the same
+    // deferred-sync pattern so whichever side initializes last triggers
+    // the initial order sync.
+    QVERIFY(src.contains(QStringLiteral("m_originalInitialized = true;")));
+
+    // The structuralSyncReady() guard inside onOriginalAppletsOrderChanged()
+    // itself must remain — it protects against spurious syncs during early
+    // startup before both sides and the mapping hash are ready.
+    QVERIFY(src.contains(QStringLiteral("void ClonedView::onOriginalAppletsOrderChanged()")));
+    QVERIFY(src.contains(QStringLiteral("if (!structuralSyncReady())")));
 }
 
 QTEST_MAIN(SourceContractTest)
