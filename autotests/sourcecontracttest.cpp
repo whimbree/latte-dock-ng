@@ -1278,14 +1278,12 @@ void SourceContractTest::compactAppletDigitalClockWidthCapPreventsLongDateFormat
     QVERIFY(appletFile.open(QFile::ReadOnly));
     const QString source = QString::fromUtf8(appletFile.readAll());
 
-    // Both captureNaturalSize and updateNaturalWidth must cap at 8×
-    // maxIconSize to leave room for long date formats (e.g. "Saturday,
-    // June 27, 2026 10:30 AM") and third-party clocks like Colorful
-    // Digital Clock that may have wider compact representations.
-    QVERIFY(source.contains(QStringLiteral("maxIconSize * 8")));
-
-    // Regression guard: the old 5× width cap must not reappear.
-    QVERIFY(!source.contains(QStringLiteral("maxIconSize * 5")));
+    // Both captureNaturalSize and updateNaturalWidth must cap at 5×
+    // maxIconSize to prevent text-heavy clocks (e.g. Colorful Digital
+    // Clock) from occupying excessive horizontal space, while still
+    // accommodating long / iso date formats.
+    QVERIFY(source.contains(QStringLiteral("maxIconSize * 5")));
+    QVERIFY(!source.contains(QStringLiteral("maxIconSize * 8")));
 
     // maxIconSize * 3 is used for the height cap, not the width cap.
     // Verify it only appears in the height-capping context.
@@ -1313,30 +1311,39 @@ void SourceContractTest::compactAppletDigitalClockWidthCapPreventsLongDateFormat
 
     // findDeepImplicitWidth fallback must exist — the digital clock's
     // compactRepresentation has implicitWidth=0 and relies on child
-    // recursion to discover the actual content width.
+    // recursion to discover the actual content width. It must skip
+    // hidden children so third-party clocks (e.g. Colorful Digital
+    // Clock) with format-specific labels don't report stale widths
+    // from invisible long-format labels.
     QVERIFY(source.contains(QStringLiteral("function findDeepImplicitWidth")));
+    QVERIFY(source.contains(QStringLiteral("!child.visible")));
 
-    // The 2 s polling timer must exist to keep the slot width in sync
-    // when clock text content changes (e.g. "1:00" → "12:34").
+    // The 500 ms polling timer must exist to keep the slot width in sync
+    // when clock text content changes (e.g. "1:00" → "12:34") and the
+    // compact representation does not emit implicitWidthChanged on its own.
     QVERIFY(source.contains(QStringLiteral("naturalWidthPollTimer")));
 
     // The deferred capture timer must exist to avoid touching the hot
     // anchoring path for non-clock applets.
     QVERIFY(source.contains(QStringLiteral("slotSizeCaptureTimer")));
 
-    // An immediate signal-driven update must supplement the polling timer
-    // so that the slot width shrinks immediately when the user switches
-    // from long to short date format (e.g. in clock settings).
+    // Signal-driven updates must supplement the polling timer so the slot
+    // width responds immediately when the clock's compact representation
+    // signals a change.  onImplicitHeightChanged and onChildrenChanged are
+    // also wired for third-party clocks (e.g. Colorful Digital Clock) whose
+    // compact representation may not emit implicitWidthChanged on format switch.
     QVERIFY(source.contains(QStringLiteral("onImplicitWidthChanged")));
+    QVERIFY(source.contains(QStringLiteral("onImplicitHeightChanged")));
     QVERIFY(source.contains(QStringLiteral("onChildrenRectChanged")));
+    QVERIFY(source.contains(QStringLiteral("onChildrenChanged")));
     QVERIFY(source.contains(QStringLiteral("updateNaturalWidth();")));
 
     // The cap must appear inside captureNaturalSize (the first occurrence)
     // and inside updateNaturalWidth (the second occurrence).
     const int captureFn = source.indexOf(QStringLiteral("function captureNaturalSize()"));
     const int updateFn = source.indexOf(QStringLiteral("function updateNaturalWidth()"));
-    const int firstCap = source.indexOf(QStringLiteral("maxIconSize * 8"), captureFn);
-    const int secondCap = source.indexOf(QStringLiteral("maxIconSize * 8"), firstCap + QStringLiteral("maxIconSize * 8").length());
+    const int firstCap = source.indexOf(QStringLiteral("maxIconSize * 5"), captureFn);
+    const int secondCap = source.indexOf(QStringLiteral("maxIconSize * 5"), firstCap + QStringLiteral("maxIconSize * 5").length());
     QVERIFY(captureFn >= 0);
     QVERIFY(updateFn > captureFn);
     QVERIFY(firstCap > captureFn);

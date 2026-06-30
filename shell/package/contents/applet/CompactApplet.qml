@@ -215,7 +215,15 @@ PlasmaCore.ToolTipArea {
         if (!item || depth > 12) return 0;
         var best = item.implicitWidth > 0 ? item.implicitWidth : 0;
         for (var i = 0; i < (item.children ? item.children.length : 0); i++) {
-            best = Math.max(best, findDeepImplicitWidth(item.children[i], depth + 1));
+            var child = item.children[i];
+            // Skip hidden children — third-party clocks (e.g. Colorful
+            // Digital Clock) may keep labels for every date format in the
+            // hierarchy with visible=false, and their implicitWidth would
+            // otherwise inflate the measurement beyond the visible content.
+            if (child && child.hasOwnProperty("visible") && !child.visible) {
+                continue;
+            }
+            best = Math.max(best, findDeepImplicitWidth(child, depth + 1));
         }
         return best;
     }
@@ -224,7 +232,11 @@ PlasmaCore.ToolTipArea {
         if (!item || depth > 12) return 0;
         var best = item.implicitHeight > 0 ? item.implicitHeight : 0;
         for (var i = 0; i < (item.children ? item.children.length : 0); i++) {
-            best = Math.max(best, findDeepImplicitHeight(item.children[i], depth + 1));
+            var child = item.children[i];
+            if (child && child.hasOwnProperty("visible") && !child.visible) {
+                continue;
+            }
+            best = Math.max(best, findDeepImplicitHeight(child, depth + 1));
         }
         return best;
     }
@@ -268,8 +280,11 @@ PlasmaCore.ToolTipArea {
         // layout transitions (e.g. mode switch, autosize animation) where
         // findDeepImplicitWidth may temporarily report the full container
         // width instead of the content's intrinsic size.
+        // Also prevents text-heavy clocks (e.g. Colorful Digital Clock)
+        // from occupying excessive horizontal space in the dock, while
+        // still accommodating long / iso date formats.
         if (w > 0 && target.metrics && target.metrics.maxIconSize > 0) {
-            w = Math.min(w, target.metrics.maxIconSize * 8);
+            w = Math.min(w, target.metrics.maxIconSize * 5);
         }
         // Cap the captured height as well to guard against runaway values
         // (e.g. compact representations that report their container height
@@ -292,10 +307,12 @@ PlasmaCore.ToolTipArea {
         if (w <= 0) {
             w = findDeepImplicitWidth(compactRepresentation, 0);
         }
-        // Same cap as captureNaturalSize to avoid runaway values.
+        // Same cap as captureNaturalSize to avoid runaway values
+        // and prevent text-heavy clocks from occupying excessive space
+        // while still accommodating long / iso date formats.
         var target = appletItem || findAppletItem();
         if (target && target.metrics && target.metrics.maxIconSize > 0) {
-            w = Math.min(w, target.metrics.maxIconSize * 8);
+            w = Math.min(w, target.metrics.maxIconSize * 5);
         }
         if (target && target.externalAppletDrawsAboveTasks
             && w > 0 && w !== target.externalAppletNaturalWidth) {
@@ -307,20 +324,28 @@ PlasmaCore.ToolTipArea {
     // or when the user switches between long and short date formats.
     // React to implicit width changes on the compact representation and its
     // children so resizes are applied immediately instead of waiting for the
-    // next poll cycle.
+    // next poll cycle.  Also monitor implicitHeight and childrenChanged for
+    // third-party clocks (e.g. Colorful Digital Clock) whose compact
+    // representation may not emit implicitWidthChanged on format switch.
     Connections {
         target: compactRepresentation
         function onImplicitWidthChanged() {
             if (naturalWidthPollTimer.running) updateNaturalWidth();
         }
+        function onImplicitHeightChanged() {
+            if (naturalWidthPollTimer.running) updateNaturalWidth();
+        }
         function onChildrenRectChanged() {
+            if (naturalWidthPollTimer.running) updateNaturalWidth();
+        }
+        function onChildrenChanged() {
             if (naturalWidthPollTimer.running) updateNaturalWidth();
         }
     }
 
     Timer {
         id: naturalWidthPollTimer
-        interval: 2000
+        interval: 500
         repeat: true
         running: false
         onTriggered: updateNaturalWidth();
