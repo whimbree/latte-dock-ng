@@ -174,6 +174,7 @@ DragDrop.DropArea {
         containsDrag = true;
         clearInfoTimer.stop();
         if (dragInfo.isTask) {
+            event.ignore();
             return;
         }
 
