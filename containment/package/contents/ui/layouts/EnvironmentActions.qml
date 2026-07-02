@@ -48,7 +48,7 @@ Loader {
 
     sourceComponent: MouseArea{
         id: mainArea
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        acceptedButtons: Qt.LeftButton | Qt.MidButton
         hoverEnabled: true
 
         property bool wheelIsBlocked: false
@@ -57,7 +57,7 @@ Loader {
         property int lastPressY: -1
 
         onClicked: function(mouse) {
-            if (root.closeActiveWindowEnabled && mouse.button === Qt.MiddleButton) {
+            if (root.closeActiveWindowEnabled && mouse.button === Qt.MidButton) {
                 selectedWindowsTracker.lastActiveWindow.requestClose();
             }
         }
