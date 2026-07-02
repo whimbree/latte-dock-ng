@@ -28,6 +28,13 @@ Item {
     property int pendingPinnedTargetIndex: -1
     property string pendingPinnedLauncherUrl: ""
     property int pendingPinnedAttempts: 0
+    // Hysteresis: prevent the insertion indicator from jittering between
+    // adjacent positions during drag.  Reorder only commits when the pointer
+    // has moved at least this many pixels (Manhattan) from the last commit.
+    property int lastReorderIndex: -1
+    property real lastReorderX: 0
+    property real lastReorderY: 0
+    readonly property int minReorderDistance: 12
 
     property alias hoveredItem: dropHandler.hoveredItem
 
@@ -220,6 +227,16 @@ Item {
             return;
         }
 
+        // Suppress jitter: only commit a new insertion position when the
+        // pointer has moved at least minReorderDistance from the last commit.
+        if (lastReorderIndex >= 0) {
+            var dx = rootX - lastReorderX;
+            var dy = rootY - lastReorderY;
+            if (Math.abs(dx) + Math.abs(dy) < minReorderDistance) {
+                return;
+            }
+        }
+
         var eventToTarget = mapToItem(target, rootX, rootY);
         var above = target.childAtPos(eventToTarget.x, eventToTarget.y, sourceItem);
 
@@ -277,6 +294,12 @@ Item {
 
         var from = sourceItem.itemIndex;
         tasksModel.move(from, insertAt);
+
+        // Record the commit position so subsequent drag-move events
+        // must move at least minReorderDistance before the next reorder.
+        lastReorderIndex = insertAt;
+        lastReorderX = rootX;
+        lastReorderY = rootY;
 
         ignoreItemTimer.restart();
     }
@@ -364,6 +387,7 @@ Item {
         }
 
         onDragEnter: (event) => {
+            dArea.lastReorderIndex = -1;
             inMovingTask = isMovingTask(event);
             inDroppingOnlyLaunchers = !inMovingTask && isDroppingOnlyLaunchers(event);
             inDroppingSeparator = !inMovingTask && isDroppingSeparator(event);
@@ -448,6 +472,7 @@ Item {
         }
 
         onDragLeave: {
+            dArea.lastReorderIndex = -1;
             dArea.containsDrag = false;
             if (dragParabolicItem && dragParabolicItem.clearParabolicFromExternalPosition) {
                 dragParabolicItem.clearParabolicFromExternalPosition();
@@ -467,6 +492,7 @@ Item {
             }
 
             // Reject internal drops.
+            dArea.lastReorderIndex = -1;
             dArea.containsDrag = false;
             if (dragParabolicItem && dragParabolicItem.clearParabolicFromExternalPosition) {
                 dragParabolicItem.clearParabolicFromExternalPosition();

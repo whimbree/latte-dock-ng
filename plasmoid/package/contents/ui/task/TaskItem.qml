@@ -160,7 +160,7 @@ AbilityItem.BasicItem {
     property int lastButtonClicked: -1;
     property int pressX: -1
     property int pressY: -1
-    property int resistanceDelay: 450
+    property int resistanceDelay: 600
     property int dragRequestToken: 0
     property int windowsCount: subWindows.windowsCount
     property int windowsMinimizedCount: subWindows.windowsMinimized
