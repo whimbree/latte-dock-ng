@@ -248,9 +248,9 @@ Item {
     property int maxWidth: root.isHorizontal ? root.height : root.width
     property int maxHeight: root.isHorizontal ? root.height : root.width
     property int internalSplitterId: 0
-    property int sortDragCommitCooldownMs: 180
-    property real sortDragCenterDeadZoneRatio: 0.30
-    property real sortDragMinDistance: 12
+    property int sortDragCommitCooldownMs: 300
+    property real sortDragCenterDeadZoneRatio: 0.40
+    property real sortDragMinDistance: 20
 
     property int previousIndex: -1
     property int spacersMaxSize: Math.max(0,Math.ceil(0.55 * metrics.iconSize) - metrics.totals.lengthEdges)
