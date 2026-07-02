@@ -428,6 +428,22 @@ ContainmentItem {
             layouter.updateSizeForAppletsInFill();
         }
 
+        // Cancel any in-progress applet sort-drag when leaving edit mode.
+        if (!editMode) {
+            var layouts = [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout];
+            for (var li = 0; li < layouts.length; ++li) {
+                var children = layouts[li].children;
+                for (var i = 0; i < children.length; ++i) {
+                    var child = children[i];
+                    if (child && child.isSortDragging) {
+                        child.resetSortDragHistory();
+                        child.opacity = 1.0;
+                        child.sortDragMoved = false;
+                    }
+                }
+            }
+        }
+
         //! This is used in case the dndspacer has been left behind
         //! e.g. the user drops a folder and a context menu is appearing
         //! but the user decides to not make a choice for the applet type
