@@ -1376,6 +1376,57 @@ ContainmentItem {
         }
     }
 
+    // In edit mode, block mouse interactions on external applets so only
+    // drag-to-reorder works. Events over the tasks plasmoid area are passed
+    // through so internal task drag (MouseArea-based) continues to function.
+    MouseArea {
+        anchors.fill: parent
+        z: 20000
+        enabled: root.editMode
+        hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
+
+        function eventIsOverTasksPlasmoid(x, y) {
+            var layouts = [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout];
+            for (var li = 0; li < layouts.length; ++li) {
+                var children = layouts[li].children;
+                for (var i = 0; i < children.length; ++i) {
+                    var child = children[i];
+                    if (child && child.indexerIsSupported && !child.isHidden) {
+                        var local = mapToItem(child, x, y);
+                        if (local.x >= 0 && local.x <= child.width
+                                && local.y >= 0 && local.y <= child.height) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        onPressed: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+        onReleased: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+        onClicked: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+        onDoubleClicked: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+        onPressAndHold: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+        onWheel: function(wheel) {
+            if (!eventIsOverTasksPlasmoid(wheel.x, wheel.y)) wheel.accepted = true;
+        }
+        onPositionChanged: function(mouse) {
+            if (!eventIsOverTasksPlasmoid(mouse.x, mouse.y)) mouse.accepted = true;
+        }
+    }
+
     Colorizer.Manager {
         id: colorizerManager
     }
