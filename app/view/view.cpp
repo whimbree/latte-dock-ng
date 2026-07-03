@@ -1614,21 +1614,23 @@ void View::setInterfacesGraphicObj(Latte::Interfaces *ifaces)
 bool View::event(QEvent *e)
 {
     // In edit mode, swallow all middle-button events so the plasmoid's
-    // TaskMouseArea cannot process them. Check MouseButtonPress (Qt 5
-    // compatibility) and Pointer (native Qt 6 path).
+    // TaskMouseArea cannot process them.  Check every pointer / mouse event
+    // type that may carry middle-button state.
     if (inEditMode()) {
-        if (e->type() == QEvent::MouseButtonPress || e->type() == QEvent::MouseButtonRelease) {
+        const auto t = e->type();
+        if (t == QEvent::MouseButtonPress || t == QEvent::MouseButtonRelease
+                || t == QEvent::MouseButtonDblClick || t == QEvent::MouseMove) {
             auto *me = static_cast<QMouseEvent *>(e);
-            if (me->button() == Qt::MiddleButton) {
+            if (me->button() == Qt::MiddleButton
+                    || (t == QEvent::MouseMove && (me->buttons() & Qt::MiddleButton))) {
                 e->accept();
                 return true;
             }
         }
-        // Qt 6 delivers pointer events natively.  QSinglePointEvent is the
-        // common base for mouse / touch / tablet single-point events.
-        if (e->type() == QEvent::Pointer) {
+        if (t == QEvent::Pointer) {
             auto *spt = dynamic_cast<QSinglePointEvent *>(e);
-            if (spt && spt->button() == Qt::MiddleButton) {
+            if (spt && (spt->button() == Qt::MiddleButton
+                        || (spt->buttons() & Qt::MiddleButton))) {
                 e->accept();
                 return true;
             }
