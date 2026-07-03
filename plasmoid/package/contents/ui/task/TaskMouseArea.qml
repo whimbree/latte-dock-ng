@@ -81,7 +81,7 @@ MouseArea {
     }
 
     // IMPORTANT: This must be improved ! even for small milliseconds  it reduces performance
-    onPositionChanged: function(mouse) {
+    onPositionChanged: (mouse) => {
         if (taskItem.abilities.myView.isReady && !taskItem.abilities.myView.isShownFully) {
             return;
         }
@@ -143,7 +143,7 @@ MouseArea {
         return _containmentEditing;
     }
 
-    onPressed: function(mouse) {
+    onPressed: (mouse) => {
         //console.log("Pressed Task Delegate..");
         slotPublishGeometries();
 
@@ -170,7 +170,7 @@ MouseArea {
         }
     }
 
-    onReleased: function(mouse) {
+    onReleased: (mouse) => {
         //console.log("Released Task Delegate...");
         _resistanerTimer.stop();
         dragReady = false;
@@ -274,7 +274,7 @@ MouseArea {
         taskItem.isDragged = false;
     }
 
-    onWheel: function(wheel) {
+    onWheel: (wheel) => {
         var wheelActionsEnabled = (root.taskScrollAction !== LatteTasks.types.ScrollNone || root.manualScrollTasksEnabled);
 
         if (isContainmentEditing()
