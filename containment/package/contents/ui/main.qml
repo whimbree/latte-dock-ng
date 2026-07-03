@@ -132,7 +132,22 @@ ContainmentItem {
     property bool disablePanelShadowMaximized: plasmoid.configuration.disablePanelShadowForMaximized && LatteCore.WindowSystem.compositingActive
     property bool drawShadowsExternal: false
 
-    property bool editMode: plasmoid.userConfiguring
+    // plasmoid.userConfiguring (C++ property) does not reliably notify QML
+    // bindings. Poll via timer and assign directly so onEditModeChanged
+    // and downstream bindings (bridge, plasmoid) always see the correct state.
+    property bool editMode: false
+    Timer {
+        id: editModePoller
+        interval: 150
+        repeat: true
+        running: true
+        onTriggered: {
+            var actual = plasmoid.userConfiguring;
+            if (editMode !== actual) {
+                editMode = actual;
+            }
+        }
+    }
     property bool windowIsTouching: latteView && latteView.windowsTracker
                                     && (latteView.windowsTracker.currentScreen.activeWindowTouching
                                         || latteView.windowsTracker.currentScreen.activeWindowTouchingEdge
