@@ -1315,7 +1315,7 @@ Item {
     Connections {
         id: viewSignalsConnector
         target: root.latteView ? root.latteView : null
-        enabled: !appletItem.indexerIsSupported && !appletItem.isSeparator && !appletItem.isSpacer && !appletItem.isHidden
+        enabled: !appletItem.indexerIsSupported && !appletItem.isSeparator && !appletItem.isSpacer && !appletItem.isHidden && !root.editMode
 
         property bool pressed: false
         property bool blockWheel: false

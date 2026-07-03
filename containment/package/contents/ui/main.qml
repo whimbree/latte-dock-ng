@@ -1274,6 +1274,7 @@ ContainmentItem {
     MouseArea {
         anchors.fill: parent
         z: 10000
+        enabled: !root.editMode
         acceptedButtons: Qt.NoButton
         property bool wheelIsBlocked: false
 
