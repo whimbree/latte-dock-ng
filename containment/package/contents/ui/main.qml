@@ -133,9 +133,9 @@ ContainmentItem {
     property bool drawShadowsExternal: false
 
     // plasmoid.userConfiguring (C++ property) does not reliably notify QML
-    // bindings. Use onEditModeChanged (reliable C++ signal) for entry, and a
-    // polling timer during edit mode to catch the exit transition.
-    property bool editMode: false
+    // bindings. Keep the binding for initial value and entry detection;
+    // the timer catches the exit transition if binding notification fails.
+    property bool editMode: plasmoid.userConfiguring
     Timer {
         id: editModePoller
         interval: 200
@@ -438,10 +438,6 @@ ContainmentItem {
 
     //////////////START OF CONNECTIONS
     onEditModeChanged: {
-        // Sync editMode from C++ property — the signal is reliable even
-        // though QML bindings on this property do not always update.
-        editMode = plasmoid.userConfiguring;
-
         if (!editMode) {
             layouter.updateSizeForAppletsInFill();
         }
