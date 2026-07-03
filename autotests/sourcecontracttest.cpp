@@ -137,7 +137,7 @@ private Q_SLOTS:
     void appletItemForAppletExcludedContextsPreservePropertyAccess();
     // Qt5→Qt6 migration guards — patterns that cause regressions
     void mouseButtonEnumUsesMidButtonNotMiddleButton();
-    void dragDropHandlersUseFunctionSyntaxNotBindingSyntax();
+    void dragDropHandlersUseBindingSyntaxForQt6();
 };
 
 void SourceContractTest::plasmaVolumeBootstrapContractMovedToQmlSmokeTest()
@@ -2590,26 +2590,26 @@ void SourceContractTest::mouseButtonEnumUsesMidButtonNotMiddleButton()
     QVERIFY(!clickedAnimSource.contains(QStringLiteral("Qt.MiddleButton")));
 }
 
-void SourceContractTest::dragDropHandlersUseFunctionSyntaxNotBindingSyntax()
-{
-    // Property-binding syntax (onDragEnter: function(event) / (event) =>)
-    // causes duplicate signal invocation in DragDrop.DropArea.
-    // Widget Explorer drops (text/x-plasmoidservicename) are handled by
-    // the C++ path; QML onDrop returns early for this mime to avoid
-    // double-creation with View::event() → handlePlasmoidDrop().
-    QFile dnd(QStringLiteral(LATTE_SOURCE_DIR
-        "/containment/package/contents/ui/DragDropArea.qml"));
-    QVERIFY(dnd.open(QFile::ReadOnly));
-    const QString dndSource = QString::fromUtf8(dnd.readAll());
-    QVERIFY(dndSource.contains(QStringLiteral("function onDragEnter(event)")));
-    QVERIFY(dndSource.contains(QStringLiteral("function onDragMove(event)")));
-    QVERIFY(dndSource.contains(QStringLiteral("function onDrop(event)")));
-    QVERIFY(!dndSource.contains(QStringLiteral("onDragEnter:")));
-    QVERIFY(!dndSource.contains(QStringLiteral("onDragMove:")));
-    QVERIFY(!dndSource.contains(QStringLiteral("onDrop:")));
-    // Mime split guard: prevents QML from double-handling Widget Explorer drops
-    QVERIFY(dndSource.contains(QStringLiteral("text/x-plasmoidservicename")));
-}
+	void SourceContractTest::dragDropHandlersUseBindingSyntaxForQt6()
+	{
+	    // function onDragEnter/onDragMove/onDrop does not connect to
+	    // DragDrop.DropArea signals in Qt 6. Arrow-function binding form
+	    // is required. Widget Explorer drops (text/x-plasmoidservicename)
+	    // are handled by the C++ path; QML onDrop returns early for this
+	    // mime to avoid double-creation with handlePlasmoidDrop().
+	    QFile dnd(QStringLiteral(LATTE_SOURCE_DIR
+	        "/containment/package/contents/ui/DragDropArea.qml"));
+	    QVERIFY(dnd.open(QFile::ReadOnly));
+	    const QString dndSource = QString::fromUtf8(dnd.readAll());
+	    QVERIFY(dndSource.contains(QStringLiteral("onDragEnter:")));
+	    QVERIFY(dndSource.contains(QStringLiteral("onDragMove:")));
+	    QVERIFY(dndSource.contains(QStringLiteral("onDrop:")));
+	    QVERIFY(!dndSource.contains(QStringLiteral("function onDragEnter(event)")));
+	    QVERIFY(!dndSource.contains(QStringLiteral("function onDragMove(event)")));
+	    QVERIFY(!dndSource.contains(QStringLiteral("function onDrop(event)")));
+	    // Mime split guard: prevents QML double-handling Widget Explorer drops
+	    QVERIFY(dndSource.contains(QStringLiteral("text/x-plasmoidservicename")));
+	}
 
 QTEST_MAIN(SourceContractTest)
 
