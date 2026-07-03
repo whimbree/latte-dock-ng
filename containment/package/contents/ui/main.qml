@@ -1326,7 +1326,7 @@ ContainmentItem {
             onTriggered: parent.wheelIsBlocked = false
         }
 
-        onWheel: function(wheel) {
+        onWheel: (wheel) => {
             if (wheelIsBlocked) return;
 
             // Do not consume wheel events over any external applet.
@@ -1433,13 +1433,13 @@ ContainmentItem {
             return false;
         }
 
-        onPressed: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
-        onReleased: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
-        onClicked: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
-        onDoubleClicked: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
-        onPressAndHold: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
-        onWheel: function(wheel) { wheel.accepted = !eventIsOverTasksPlasmoid(wheel.x, wheel.y); }
-        onPositionChanged: function(mouse) { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onPressed: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onReleased: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onClicked: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onDoubleClicked: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onPressAndHold: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
+        onWheel: (wheel) => { wheel.accepted = !eventIsOverTasksPlasmoid(wheel.x, wheel.y); }
+        onPositionChanged: (mouse) => { mouse.accepted = !eventIsOverTasksPlasmoid(mouse.x, mouse.y); }
     }
 
     Colorizer.Manager {
