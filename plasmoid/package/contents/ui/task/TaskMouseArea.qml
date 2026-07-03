@@ -121,8 +121,9 @@ MouseArea {
         }
     }
 
-    // Poll containment edit state — plasmoid.containment.userConfiguring
-    // bindings do not reliably notify in QML.
+    // containmentEditing is set directly by the containment's
+    // onEditModeChanged via item.applet.containmentEditing = editMode.
+    // Poll it — direct property assignments don't need binding notifications.
     property bool _containmentEditing: false
     Timer {
         id: editModePoller
@@ -130,7 +131,11 @@ MouseArea {
         repeat: true
         running: true
         onTriggered: {
-            _containmentEditing = (plasmoid.containment && plasmoid.containment.userConfiguring === true);
+            try {
+                _containmentEditing = (typeof containmentEditing !== "undefined" && containmentEditing);
+            } catch (e) {
+                _containmentEditing = false;
+            }
         }
     }
 

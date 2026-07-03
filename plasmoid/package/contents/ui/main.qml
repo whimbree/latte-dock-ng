@@ -245,23 +245,11 @@ PlasmoidItem {
 
     //END Latte Dock Panel properties
 
-    readonly property bool inEditMode: latteInEditMode || plasmoid.userConfiguring || _containmentEditMode
+    // Set by containment directly via item.applet.containmentEditing = editMode
+    // in main.qml onEditModeChanged. Avoids QML binding notification issues.
+    property bool containmentEditing: false
 
-    // Plasmoid containment's userConfiguring property may not emit change
-    // notifications via QML bindings. Poll it on a timer as a fallback so
-    // the task reorder guards in TaskMouseArea always see the correct state.
-    property bool _containmentEditMode: false
-    Timer {
-        id: containmentEditModePoller
-        interval: 250
-        repeat: true
-        running: true
-        onTriggered: {
-            if (plasmoid.containment) {
-                _containmentEditMode = plasmoid.containment.userConfiguring;
-            }
-        }
-    }
+    readonly property bool inEditMode: latteInEditMode || plasmoid.userConfiguring || containmentEditing
 
     //BEGIN Latte Dock Communicator
     property QtObject latteBridge: null

@@ -451,6 +451,19 @@ ContainmentItem {
             dndSpacer.parent = root;
         }
 
+        // Propagate edit mode to task plasmoid instances by direct
+        // assignment so TaskMouseArea can block clicks during edit mode.
+        var layouts = [layoutsContainer.startLayout, layoutsContainer.mainLayout, layoutsContainer.endLayout];
+        for (var li = 0; li < layouts.length; ++li) {
+            var children = layouts[li].children;
+            for (var i = 0; i < children.length; ++i) {
+                var item = children[i];
+                if (item && item.applet && item.indexerIsSupported) {
+                    try { item.applet.containmentEditing = editMode; } catch (e) {}
+                }
+            }
+        }
+
         //Block Hiding events
         if (editMode) {
             latteView.visibility.addBlockHidingEvent("main[qml]::inEditMode()");
