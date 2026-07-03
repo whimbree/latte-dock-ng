@@ -121,8 +121,21 @@ MouseArea {
         }
     }
 
+    // Poll containment edit state — plasmoid.containment.userConfiguring
+    // bindings do not reliably notify in QML.
+    property bool _containmentEditing: false
+    Timer {
+        id: editModePoller
+        interval: 200
+        repeat: true
+        running: true
+        onTriggered: {
+            _containmentEditing = (plasmoid.containment && plasmoid.containment.userConfiguring === true);
+        }
+    }
+
     function isContainmentEditing() {
-        return (plasmoid.containment && plasmoid.containment.userConfiguring === true);
+        return _containmentEditing;
     }
 
     onPressed: function(mouse) {
