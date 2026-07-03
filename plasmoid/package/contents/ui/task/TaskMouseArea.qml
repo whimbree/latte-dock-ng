@@ -137,7 +137,7 @@ MouseArea {
             if(!modAccepted){
                 _resistanerTimer.start();
             }
-        } else if (mouse.button === Qt.RightButton && !modAccepted) {
+        } else if (mouse.button === Qt.RightButton && !modAccepted && !root.inEditMode) {
             // When we're a launcher, there's no window controls, so we can show all
             // places without the menu getting super huge.
             if (model.IsLauncher === true && !isSeparator) {
@@ -153,7 +153,8 @@ MouseArea {
         _resistanerTimer.stop();
         dragReady = false;
 
-        if (pressed
+        if (!root.inEditMode
+                && pressed
                 && !isSeparator
                 && !(taskItem.isDragged || dragHelper.Drag.active || root.dragSource === taskItem)) {
 
@@ -254,7 +255,8 @@ MouseArea {
     onWheel: function(wheel) {
         var wheelActionsEnabled = (root.taskScrollAction !== LatteTasks.types.ScrollNone || root.manualScrollTasksEnabled);
 
-        if (isSeparator
+        if (root.inEditMode
+                || isSeparator
                 || wheelIsBlocked
                 || !wheelActionsEnabled
                 || inBouncingAnimation

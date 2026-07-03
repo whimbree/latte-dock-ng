@@ -1376,25 +1376,6 @@ ContainmentItem {
         }
     }
 
-    // In edit mode, block all mouse interactions (clicks, scrolls, hover)
-    // so only drag-to-reorder works. DragHandler uses Qt Quick's pointer
-    // handler delivery which bypasses MouseArea — applet sort-drag is not
-    // affected by this overlay.
-    MouseArea {
-        anchors.fill: parent
-        z: 20000
-        enabled: root.editMode
-        hoverEnabled: true
-        acceptedButtons: Qt.AllButtons
-        onPressed: function(mouse) { mouse.accepted = true; }
-        onReleased: function(mouse) { mouse.accepted = true; }
-        onClicked: function(mouse) { mouse.accepted = true; }
-        onDoubleClicked: function(mouse) { mouse.accepted = true; }
-        onPressAndHold: function(mouse) { mouse.accepted = true; }
-        onWheel: function(wheel) { wheel.accepted = true; }
-        onPositionChanged: function(mouse) { mouse.accepted = true; }
-    }
-
     Colorizer.Manager {
         id: colorizerManager
     }
